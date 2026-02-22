@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+*.env.local
+
+# Data
+data/uploads/*
+data/raw_videos/*
+data/processed/*
+!data/**/.gitkeep
+
+# Models (downloaded weights)
+models/*.pt
+models/*.onnx
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+bash.exe.stackdump
+
+# Claude
+.claude/
