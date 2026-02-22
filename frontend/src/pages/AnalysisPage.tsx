@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import type { PitStopDetail, Detection } from "../types";
-import { getPitStop, getDetections, getPitStopStatus } from "../services/api";
+import { getPitStop, getDetections, getPitStopStatus, reprocessPitStop } from "../services/api";
 import StatusBadge from "../components/StatusBadge";
 import ProgressBar from "../components/ProgressBar";
 import DetectionTimeline from "../components/DetectionTimeline";
 import ConfidenceChart from "../components/ConfidenceChart";
+import ModelSelector from "../components/ModelSelector";
 
 export default function AnalysisPage() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +14,8 @@ export default function AnalysisPage() {
   const [detections, setDetections] = useState<Detection[]>([]);
   const [loading, setLoading] = useState(true);
   const [progressPct, setProgressPct] = useState(0);
+  const [reprocessing, setReprocessing] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -67,9 +70,38 @@ export default function AnalysisPage() {
         &larr; Back to Dashboard
       </Link>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0 }}>{pitStop.original_filename}</h1>
         <StatusBadge status={pitStop.status} />
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+          <ModelSelector onModelChange={(name) => setSelectedModel(name)} />
+          {pitStop.status === "completed" && (
+            <button
+              onClick={async () => {
+                if (!selectedModel || reprocessing) return;
+                setReprocessing(true);
+                await reprocessPitStop(parseInt(id!), selectedModel);
+                // Refresh to show processing state
+                const ps = await getPitStop(parseInt(id!));
+                setPitStop(ps);
+                setReprocessing(false);
+              }}
+              disabled={reprocessing || !selectedModel}
+              style={{
+                padding: "6px 14px",
+                background: reprocessing ? "#9ca3af" : "#f59e0b",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: reprocessing ? "not-allowed" : "pointer",
+              }}
+            >
+              {reprocessing ? "Reprocessing..." : "Reprocess"}
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 24, marginTop: 16, flexWrap: "wrap" }}>

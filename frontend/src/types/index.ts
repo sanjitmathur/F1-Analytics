@@ -59,3 +59,114 @@ export interface UploadResponse {
   id: number;
   message: string;
 }
+
+// --- Phase 2 Types ---
+
+export interface ExtractedFrame {
+  id: number;
+  pit_stop_id: number;
+  frame_number: number;
+  timestamp_sec: number;
+  width: number;
+  height: number;
+  is_labeled: boolean;
+  dataset_id: number | null;
+  created_at: string;
+}
+
+export interface ExtractedFramePage {
+  items: ExtractedFrame[];
+  total: number;
+  page: number;
+  per_page: number;
+}
+
+export interface ExtractionStatus {
+  status: string;
+  extracted: number;
+  total: number;
+  progress_pct: number;
+}
+
+export interface AnnotationLabel {
+  class_name: string;
+  bbox_x: number;
+  bbox_y: number;
+  bbox_w: number;
+  bbox_h: number;
+}
+
+export interface Dataset {
+  id: number;
+  name: string;
+  version: string;
+  description: string | null;
+  class_names: string[];
+  total_images: number;
+  total_labeled: number;
+  train_count: number;
+  val_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DatasetStats {
+  total_images: number;
+  total_labeled: number;
+  train_count: number;
+  val_count: number;
+  per_class_counts: Record<string, number>;
+  avg_annotations_per_image: number;
+}
+
+export interface TrainingRun {
+  id: number;
+  dataset_id: number;
+  model_name: string;
+  base_model: string;
+  status: "pending" | "training" | "completed" | "failed";
+  epochs: number;
+  batch_size: number;
+  image_size: number;
+  current_epoch: number;
+  best_map50: number | null;
+  best_map50_95: number | null;
+  precision: number | null;
+  recall: number | null;
+  training_time_sec: number | null;
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface TrainingProgress {
+  status: string;
+  current_epoch: number;
+  total_epochs: number;
+  progress_pct: number;
+  train_loss: number | null;
+  val_map50: number | null;
+  val_map50_95: number | null;
+  loss_history: Array<{
+    epoch: number;
+    box_loss: number;
+    cls_loss: number;
+    map50: number;
+  }> | null;
+}
+
+export interface ModelInfo {
+  name: string;
+  path: string;
+  type: "coco" | "custom";
+  best_map50?: number | null;
+}
+
+export interface SystemInfo {
+  python_version: string;
+  yolo_version: string;
+  cuda_available: boolean;
+  gpu_name: string | null;
+  loaded_models: string[];
+  disk_usage: Record<string, string>;
+}

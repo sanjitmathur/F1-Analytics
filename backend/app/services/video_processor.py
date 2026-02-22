@@ -13,7 +13,12 @@ from .yolo_detector import detector
 logger = logging.getLogger(__name__)
 
 
-def process_video(pit_stop_id: int, video_path: str, sample_rate: int | None = None):
+def process_video(
+    pit_stop_id: int,
+    video_path: str,
+    sample_rate: int | None = None,
+    model_name: str | None = None,
+):
     """Process a video file in a background thread.
 
     Opens video, samples every Nth frame, runs YOLO, stores results.
@@ -23,14 +28,14 @@ def process_video(pit_stop_id: int, video_path: str, sample_rate: int | None = N
 
     thread = threading.Thread(
         target=_process_video_sync,
-        args=(pit_stop_id, video_path, sample_rate),
+        args=(pit_stop_id, video_path, sample_rate, model_name),
         daemon=True,
     )
     thread.start()
     return thread
 
 
-def _process_video_sync(pit_stop_id: int, video_path: str, sample_rate: int):
+def _process_video_sync(pit_stop_id: int, video_path: str, sample_rate: int, model_name: str | None = None):
     db = get_sync_db()
     try:
         pit_stop = db.query(PitStop).filter(PitStop.id == pit_stop_id).first()
@@ -69,7 +74,7 @@ def _process_video_sync(pit_stop_id: int, video_path: str, sample_rate: int):
 
             if frame_number % sample_rate == 0:
                 timestamp_sec = round(frame_number / fps, 3) if fps > 0 else 0
-                detections = detector.detect_frame(frame)
+                detections = detector.detect_frame(frame, model_name=model_name)
 
                 for det in detections:
                     detection_batch.append(Detection(

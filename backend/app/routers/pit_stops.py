@@ -1,14 +1,18 @@
+import io
 import os
 import uuid
 from pathlib import Path
 
+import cv2
+import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..config import settings
-from ..database import get_db
+from ..database import get_db, get_sync_db
 from ..models import PitStop, Detection, DetectionSummary
 from ..schemas import (
     PitStopBase,
@@ -18,6 +22,7 @@ from ..schemas import (
     DetectionPage,
     UploadResponse,
     YouTubeRequest,
+    ReprocessRequest,
 )
 from ..services.video_processor import process_video
 from ..services.youtube_downloader import download_and_process
@@ -173,3 +178,92 @@ async def delete_pit_stop(pit_stop_id: int, db: AsyncSession = Depends(get_db)):
 
     await db.delete(pit_stop)
     await db.commit()
+
+
+@router.post("/{pit_stop_id:int}/reprocess", status_code=202)
+async def reprocess(pit_stop_id: int, body: ReprocessRequest, db: AsyncSession = Depends(get_db)):
+    """Re-run detection on a video using a different model."""
+    result = await db.execute(select(PitStop).filter(PitStop.id == pit_stop_id))
+    pit_stop = result.scalar_one_or_none()
+    if not pit_stop:
+        raise HTTPException(404, "Pit stop not found")
+
+    # Clear old detections and summaries
+    await db.execute(delete(Detection).filter(Detection.pit_stop_id == pit_stop_id))
+    await db.execute(delete(DetectionSummary).filter(DetectionSummary.pit_stop_id == pit_stop_id))
+    pit_stop.status = "pending"
+    pit_stop.processed_frames = 0
+    await db.commit()
+
+    # Start reprocessing with specified model
+    file_path = Path(settings.UPLOAD_DIR) / pit_stop.filename
+    process_video(pit_stop.id, str(file_path), model_name=body.model_name)
+
+    return {"message": f"Reprocessing started with model '{body.model_name}'"}
+
+
+@router.get("/{pit_stop_id:int}/preview-frame")
+async def preview_frame(
+    pit_stop_id: int,
+    frame_number: int = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return a single video frame with detection bounding boxes drawn on it."""
+    result = await db.execute(select(PitStop).filter(PitStop.id == pit_stop_id))
+    pit_stop = result.scalar_one_or_none()
+    if not pit_stop:
+        raise HTTPException(404, "Pit stop not found")
+    if pit_stop.status != "completed":
+        raise HTTPException(400, "Pit stop must be completed")
+
+    video_path = str(Path(settings.UPLOAD_DIR) / pit_stop.filename)
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise HTTPException(500, "Could not open video")
+
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    target_frame = frame_number if frame_number is not None else total_frames // 2
+
+    cap.set(cv2.CAP_PROP_POS_FRAMES, target_frame)
+    ret, frame = cap.read()
+    cap.release()
+
+    if not ret:
+        raise HTTPException(500, "Could not read frame")
+
+    # Get detections near this frame
+    sync_db = get_sync_db()
+    try:
+        dets = (
+            sync_db.query(Detection)
+            .filter(Detection.pit_stop_id == pit_stop_id)
+            .filter(Detection.frame_number.between(target_frame - 2, target_frame + 2))
+            .all()
+        )
+
+        # Draw boxes
+        colors = {
+            "person": (66, 133, 244), "car": (52, 168, 83), "truck": (251, 188, 4),
+            "pit_crew": (239, 68, 68), "tire": (59, 130, 246), "jack": (245, 158, 11),
+            "f1_car": (16, 185, 129), "pit_box": (139, 92, 246), "wheel_gun": (236, 72, 153),
+            "helmet": (6, 182, 212),
+        }
+
+        for det in dets:
+            x1 = int(det.bbox_x)
+            y1 = int(det.bbox_y)
+            x2 = int(det.bbox_x + det.bbox_w)
+            y2 = int(det.bbox_y + det.bbox_h)
+            color = colors.get(det.class_name, (200, 200, 200))
+
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+            label = f"{det.class_name} {det.confidence:.0%}"
+            (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+            cv2.rectangle(frame, (x1, y1 - th - 6), (x1 + tw + 4, y1), color, -1)
+            cv2.putText(frame, label, (x1 + 2, y1 - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+    finally:
+        sync_db.close()
+
+    # Encode as JPEG
+    _, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    return StreamingResponse(io.BytesIO(buffer.tobytes()), media_type="image/jpeg")

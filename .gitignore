@@ -25,6 +25,9 @@ env/
 data/uploads/*
 data/raw_videos/*
 data/processed/*
+data/extracted_frames/*
+data/datasets/*
+data/models/*
 !data/**/.gitkeep
 
 # Models (downloaded weights)
