@@ -48,6 +48,7 @@ export interface DetectionSummary {
   id: number;
   class_name: string;
   total_count: number;
+  max_per_frame: number;
   avg_confidence: number;
   min_confidence: number;
   max_confidence: number;

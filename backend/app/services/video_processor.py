@@ -133,6 +133,8 @@ def _process_video_sync(pit_stop_id: int, video_path: str, sample_rate: int, mod
 
 def _compute_summaries(db, pit_stop_id: int):
     """Aggregate detections into per-class summaries."""
+    from sqlalchemy import literal_column
+
     # Delete old summaries if any
     db.query(DetectionSummary).filter(DetectionSummary.pit_stop_id == pit_stop_id).delete()
 
@@ -151,11 +153,34 @@ def _compute_summaries(db, pit_stop_id: int):
         .all()
     )
 
+    # Compute max detections per frame for each class
+    # (best approximation of actual object count in the scene)
+    per_frame_subq = (
+        db.query(
+            Detection.class_name,
+            Detection.frame_number,
+            func.count(Detection.id).label("frame_count"),
+        )
+        .filter(Detection.pit_stop_id == pit_stop_id)
+        .group_by(Detection.class_name, Detection.frame_number)
+        .subquery()
+    )
+    max_per_frame_rows = (
+        db.query(
+            per_frame_subq.c.class_name,
+            func.max(per_frame_subq.c.frame_count).label("max_per_frame"),
+        )
+        .group_by(per_frame_subq.c.class_name)
+        .all()
+    )
+    max_per_frame_map = {r.class_name: r.max_per_frame for r in max_per_frame_rows}
+
     for row in rows:
         summary = DetectionSummary(
             pit_stop_id=pit_stop_id,
             class_name=row.class_name,
             total_count=row.total_count,
+            max_per_frame=max_per_frame_map.get(row.class_name, 0),
             avg_confidence=round(float(row.avg_confidence), 4),
             min_confidence=round(float(row.min_confidence), 4),
             max_confidence=round(float(row.max_confidence), 4),

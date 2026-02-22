@@ -64,6 +64,7 @@ class DetectionSummaryOut(BaseModel):
     id: int
     class_name: str
     total_count: int
+    max_per_frame: int = 0
     avg_confidence: float
     min_confidence: float
     max_confidence: float

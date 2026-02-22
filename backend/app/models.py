@@ -50,6 +50,7 @@ class DetectionSummary(Base):
     pit_stop_id = Column(Integer, ForeignKey("pit_stops.id", ondelete="CASCADE"), nullable=False)
     class_name = Column(String, nullable=False)
     total_count = Column(Integer, nullable=False)
+    max_per_frame = Column(Integer, nullable=False, default=0)
     avg_confidence = Column(Float, nullable=False)
     min_confidence = Column(Float, nullable=False)
     max_confidence = Column(Float, nullable=False)

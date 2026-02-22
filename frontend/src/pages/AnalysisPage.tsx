@@ -136,24 +136,22 @@ export default function AnalysisPage() {
             <thead>
               <tr style={{ borderBottom: "2px solid #e5e7eb", textAlign: "left" }}>
                 <th style={thStyle}>Class</th>
-                <th style={thStyle}>Count</th>
+                <th style={thStyle} title="Max objects detected in a single frame">Count</th>
+                <th style={thStyle} title="Total detections across all frames">Total Detections</th>
                 <th style={thStyle}>Avg Conf.</th>
-                <th style={thStyle}>Min Conf.</th>
-                <th style={thStyle}>Max Conf.</th>
                 <th style={thStyle}>First Seen</th>
                 <th style={thStyle}>Last Seen</th>
               </tr>
             </thead>
             <tbody>
               {pitStop.summaries
-                .sort((a, b) => b.total_count - a.total_count)
+                .sort((a, b) => (b.max_per_frame || 0) - (a.max_per_frame || 0))
                 .map((s) => (
                   <tr key={s.id} style={{ borderBottom: "1px solid #e5e7eb" }}>
                     <td style={tdStyle}>{s.class_name}</td>
-                    <td style={tdStyle}>{s.total_count}</td>
+                    <td style={{ ...tdStyle, fontWeight: 700 }}>{s.max_per_frame || "-"}</td>
+                    <td style={{ ...tdStyle, color: "#888" }}>{s.total_count}</td>
                     <td style={tdStyle}>{(s.avg_confidence * 100).toFixed(1)}%</td>
-                    <td style={tdStyle}>{(s.min_confidence * 100).toFixed(1)}%</td>
-                    <td style={tdStyle}>{(s.max_confidence * 100).toFixed(1)}%</td>
                     <td style={tdStyle}>{s.first_seen_sec.toFixed(1)}s</td>
                     <td style={tdStyle}>{s.last_seen_sec.toFixed(1)}s</td>
                   </tr>
