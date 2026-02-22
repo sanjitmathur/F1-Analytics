@@ -30,9 +30,12 @@ data/processed/*
 # Models (downloaded weights)
 models/*.pt
 models/*.onnx
+*.pt
 
 # Database
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 
@@ -40,6 +43,7 @@ models/*.onnx
 frontend/node_modules/
 frontend/dist/
 frontend/.env.local
+frontend/README.md
 
 # OS
 .DS_Store
