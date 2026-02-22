@@ -2,49 +2,69 @@
 
 Computer vision system that analyzes F1 pit stop videos using YOLOv8, with results displayed in a React dashboard.
 
+## Quick Start
+
+### Prerequisites
+- **Python 3.10+** - [python.org](https://www.python.org/downloads/)
+- **Node.js 18+** - [nodejs.org](https://nodejs.org/)
+
+### Run the Dashboard
+
+**Windows** - double-click `start.bat` or run:
+```
+start.bat
+```
+
+**Mac/Linux:**
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+This will automatically:
+1. Create a Python virtual environment
+2. Install all backend dependencies
+3. Install all frontend dependencies
+4. Start both servers
+
+Then open **http://localhost:5173** in your browser.
+
+## Usage
+
+1. Click **Upload** in the nav bar
+2. Choose **Upload File** to upload a local video, or **YouTube URL** to paste a pit stop link
+3. Wait for YOLO processing to complete (progress shown in real-time)
+4. View detection results: summaries, timeline chart, confidence chart
+
+Supported formats: mp4, avi, mov, mkv, webm
+
 ## Tech Stack
 
 - **Backend**: Python, FastAPI, SQLAlchemy (async), SQLite, Ultralytics YOLOv8, OpenCV
 - **Frontend**: React + TypeScript + Vite, Recharts, React Router
 - **Model**: YOLOv8n (nano) - pre-trained, auto-downloads on first run (~6MB)
 
-## Setup
+## Manual Setup
+
+If you prefer to set things up manually:
 
 ### Backend
-
 ```bash
-# From project root
 python -m venv venv
-source venv/Scripts/activate  # Windows: venv\Scripts\activate
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # Mac/Linux
 pip install -r backend/requirements.txt
 
-# Copy env config (optional - defaults work out of the box)
-cp backend/.env.example backend/.env
-
-# Start the API server
 cd backend
-uvicorn app.main:app --reload --port 8000
+python -m uvicorn app.main:app --port 8000
 ```
 
-The YOLO model downloads automatically on first startup.
-
 ### Frontend
-
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-
-Frontend runs at http://localhost:5173 with API proxy to backend.
-
-## Usage
-
-1. Start both backend and frontend
-2. Navigate to http://localhost:5173
-3. Click "Upload" and select a pit stop video (mp4, avi, mov, mkv, webm)
-4. Wait for YOLO processing to complete (progress shown in real-time)
-5. View detection results: summaries, timeline chart, confidence chart
 
 ## API Endpoints
 
@@ -52,6 +72,7 @@ Frontend runs at http://localhost:5173 with API proxy to backend.
 |--------|------|-------------|
 | GET | `/api/health` | Health check |
 | POST | `/api/pit-stops/upload` | Upload video for analysis |
+| POST | `/api/pit-stops/from-youtube` | Submit YouTube URL |
 | GET | `/api/pit-stops` | List all pit stops |
 | GET | `/api/pit-stops/{id}` | Pit stop detail + summaries |
 | GET | `/api/pit-stops/{id}/status` | Processing progress |
