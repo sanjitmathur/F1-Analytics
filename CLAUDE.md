@@ -41,7 +41,29 @@ cd frontend && npm run build
 cd frontend && npm run lint
 ```
 
-There are no backend tests or linting configured yet.
+### Tests
+```bash
+# Backend tests (from project root)
+cd backend && pip install -r requirements-dev.txt && pytest -v
+
+# Frontend tests
+cd frontend && npm run test
+```
+
+### Lint
+```bash
+# Backend lint (ruff)
+cd backend && ruff check app/
+
+# Frontend lint (eslint)
+cd frontend && npm run lint
+```
+
+### Docker
+```bash
+docker compose build && docker compose up
+# Frontend at http://localhost, backend at http://localhost:8000
+```
 
 ## Architecture
 
@@ -93,6 +115,18 @@ Backend settings via `backend/.env` (optional, has defaults):
 - `YOLO_MODEL` — default `yolov8n.pt` (auto-downloads ~6MB on first run)
 - `FRAME_SAMPLE_RATE` — default `5`
 - `DEFAULT_BASE_MODEL` — default `yolov8s.pt` (for custom training)
+
+### Additional Directories
+- `scripts/` — Utility scripts: `auto_annotate.py` (COCO-to-F1 pseudo-labeler), `mark_labeled.py` (sync DB labels)
+- `docs/` — `TRAINING_GUIDE.md` for custom model training workflow
+- `.github/workflows/ci.yml` — CI pipeline: ruff, pytest, eslint, vite build, vitest (5 jobs)
+
+### Multi-Model Detection
+Detections and summaries have a `model_name` column. Reprocessing a video with a different model preserves existing detections (non-destructive). The ComparisonPage shows side-by-side frame previews with per-model bounding boxes.
+
+### Key Endpoints Added in Phase 3
+- `GET /api/pit-stops/{id}/models-used` — distinct model names for a video
+- `GET /api/pit-stops/{id}/summaries?model_name=` — filtered summaries by model
 
 ## CORS
 Backend allows origins: `localhost:5173`, `localhost:5174`, `localhost:3000`. If the frontend starts on a different port, update the `allow_origins` list in `backend/app/main.py`.

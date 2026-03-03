@@ -82,6 +82,39 @@ npm install
 npm run dev
 ```
 
+## Docker Deployment
+
+```bash
+docker compose build
+docker compose up
+```
+
+- Frontend: **http://localhost**
+- Backend API: **http://localhost:8000**
+- Data persists in the `./data` volume mount
+
+## Testing
+
+```bash
+# Backend (pytest)
+cd backend
+pip install -r requirements-dev.txt
+pytest -v
+
+# Frontend (vitest)
+cd frontend
+npm run test
+```
+
+## CI/CD
+
+GitHub Actions runs on every push/PR to main with 5 jobs:
+1. **backend-lint** — ruff
+2. **backend-test** — pytest
+3. **frontend-lint** — eslint
+4. **frontend-build** — TypeScript + Vite build
+5. **frontend-test** — vitest
+
 ## API Endpoints
 
 ### Pit Stops
@@ -96,6 +129,8 @@ npm run dev
 | GET | `/api/pit-stops/{id}/detections` | Paginated detections |
 | POST | `/api/pit-stops/{id}/reprocess` | Re-run detection with a different model |
 | GET | `/api/pit-stops/{id}/preview-frame` | Get frame with detection boxes drawn |
+| GET | `/api/pit-stops/{id}/models-used` | List models that have processed this video |
+| GET | `/api/pit-stops/{id}/summaries` | Detection summaries (filterable by model_name) |
 | DELETE | `/api/pit-stops/{id}` | Delete pit stop |
 
 ### Frames & Annotation
@@ -145,6 +180,15 @@ npm run dev
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/health` | Health check |
+
+## Utility Scripts
+
+| Script | Description |
+|--------|-------------|
+| `scripts/auto_annotate.py` | Auto-annotate extracted frames using a COCO model with F1 class mapping |
+| `scripts/mark_labeled.py` | Sync auto-annotated frames as labeled in the database |
+
+See [docs/TRAINING_GUIDE.md](docs/TRAINING_GUIDE.md) for the full custom model training workflow.
 
 ## Configuration
 
