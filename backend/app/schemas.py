@@ -49,6 +49,7 @@ class DetectionOut(BaseModel):
     bbox_y: float
     bbox_w: float
     bbox_h: float
+    model_name: str = "default"
 
     model_config = {"from_attributes": True}
 
@@ -70,6 +71,7 @@ class DetectionSummaryOut(BaseModel):
     max_confidence: float
     first_seen_sec: float
     last_seen_sec: float
+    model_name: str = "default"
 
     model_config = {"from_attributes": True}
 

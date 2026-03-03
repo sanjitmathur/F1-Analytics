@@ -1,6 +1,5 @@
 import logging
 import platform
-import shutil
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -10,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import init_db
-from .routers import pit_stops, frames, datasets, training, models
+from .routers import datasets, frames, models, pit_stops, training
 from .schemas import HealthResponse, SystemInfo
 from .services.yolo_detector import detector
 

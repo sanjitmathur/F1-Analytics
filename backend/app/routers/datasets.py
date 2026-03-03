@@ -7,17 +7,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_db
 from ..models import Dataset
 from ..schemas import (
+    AddFramesRequest,
     DatasetCreate,
     DatasetOut,
     DatasetStats,
-    AddFramesRequest,
     SplitRequest,
 )
 from ..services.dataset_manager import (
-    create_dataset_sync,
     add_frames_to_dataset_sync,
-    split_dataset_sync,
+    create_dataset_sync,
     get_dataset_stats_sync,
+    split_dataset_sync,
 )
 
 router = APIRouter(prefix="/api/datasets", tags=["datasets"])
@@ -77,6 +77,7 @@ async def dataset_stats(dataset_id: int, db: AsyncSession = Depends(get_db)):
 async def delete_dataset(dataset_id: int, db: AsyncSession = Depends(get_db)):
     import shutil
     from pathlib import Path
+
     from ..config import settings
 
     result = await db.execute(select(Dataset).filter(Dataset.id == dataset_id))

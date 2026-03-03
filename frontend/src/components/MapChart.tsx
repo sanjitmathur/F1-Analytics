@@ -27,7 +27,7 @@ export default function MapChart({ data }: MapChartProps) {
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis dataKey="epoch" label={{ value: "Epoch", position: "insideBottom", offset: -5 }} />
           <YAxis domain={[0, 1]} />
-          <Tooltip formatter={(value: number) => `${(value * 100).toFixed(1)}%`} />
+          <Tooltip formatter={(value) => `${(Number(value) * 100).toFixed(1)}%`} />
           <Legend />
           <Line type="monotone" dataKey="map50" stroke="#10b981" name="mAP@50" dot={false} strokeWidth={2} />
         </LineChart>

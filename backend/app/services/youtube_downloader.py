@@ -50,7 +50,6 @@ def _download_and_process_sync(pit_stop_id: int, url: str):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             title = info.get("title", "youtube_video")
-            ext = info.get("ext", "mp4")
             downloaded_file = Path(ydl.prepare_filename(info))
 
         if not downloaded_file.exists():

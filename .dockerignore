@@ -1,0 +1,10 @@
+data/
+*.db
+*.db-journal
+*.db-wal
+__pycache__/
+node_modules/
+.git/
+.env
+*.pyc
+.claude/

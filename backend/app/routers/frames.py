@@ -2,22 +2,21 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
+from ..constants import F1_CLASS_TO_ID
 from ..database import get_db
 from ..models import ExtractedFrame, PitStop
 from ..schemas import (
+    AnnotateRequest,
+    AnnotationLabel,
+    AnnotationResponse,
+    ExtractedFramePage,
     FrameExtractionRequest,
     FrameExtractionResponse,
-    ExtractedFrameOut,
-    ExtractedFramePage,
-    AnnotateRequest,
-    AnnotationResponse,
-    AnnotationLabel,
 )
-from ..constants import F1_CLASS_TO_ID
 from ..services.frame_extractor import extract_frames, get_extraction_status
 
 router = APIRouter(prefix="/api/frames", tags=["frames"])

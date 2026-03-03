@@ -4,6 +4,7 @@ import type {
   PitStopDetail,
   PitStopStatus,
   DetectionPage,
+  DetectionSummary,
   UploadResponse,
   ExtractedFramePage,
   ExtractionStatus,
@@ -53,11 +54,14 @@ export async function getPitStopStatus(id: number): Promise<PitStopStatus> {
 export async function getDetections(
   id: number,
   page = 1,
-  perPage = 50
+  perPage = 50,
+  modelName?: string
 ): Promise<DetectionPage> {
+  const params: Record<string, unknown> = { page, per_page: perPage };
+  if (modelName) params.model_name = modelName;
   const { data } = await client.get<DetectionPage>(
     `/pit-stops/${id}/detections`,
-    { params: { page, per_page: perPage } }
+    { params }
   );
   return data;
 }
@@ -225,6 +229,33 @@ export async function reprocessPitStop(
   modelName: string
 ): Promise<void> {
   await client.post(`/pit-stops/${pitStopId}/reprocess`, { model_name: modelName });
+}
+
+export async function getModelsUsed(
+  pitStopId: number
+): Promise<{ models: string[] }> {
+  const { data } = await client.get(`/pit-stops/${pitStopId}/models-used`);
+  return data;
+}
+
+export function getPreviewFrameUrl(
+  pitStopId: number,
+  frameNumber: number,
+  modelName?: string
+): string {
+  let url = `/api/pit-stops/${pitStopId}/preview-frame?frame_number=${frameNumber}`;
+  if (modelName) url += `&model_name=${encodeURIComponent(modelName)}`;
+  return url;
+}
+
+export async function getSummariesByModel(
+  pitStopId: number,
+  modelName?: string
+): Promise<DetectionSummary[]> {
+  const params: Record<string, unknown> = {};
+  if (modelName) params.model_name = modelName;
+  const { data } = await client.get(`/pit-stops/${pitStopId}/summaries`, { params });
+  return data;
 }
 
 // --- System Info ---

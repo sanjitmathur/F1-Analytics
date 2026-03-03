@@ -53,7 +53,7 @@ export default function AnalysisPage() {
             setDetections(dets.items);
           }
         }
-      } catch {}
+      } catch { /* ignore polling errors */ }
     }, 2000);
 
     return () => clearInterval(poll);

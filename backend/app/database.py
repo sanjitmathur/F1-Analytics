@@ -1,8 +1,12 @@
+import logging
+
 from sqlalchemy import create_engine, event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import Session, sessionmaker, DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from .config import settings
+
+logger = logging.getLogger(__name__)
 
 
 # Async engine for FastAPI endpoints
@@ -32,6 +36,21 @@ async def init_db():
         await conn.exec_driver_sql("PRAGMA journal_mode=WAL")
         from . import models  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
+        await _run_migrations(conn)
+
+
+async def _run_migrations(conn):
+    """Lightweight migrations for existing databases."""
+    migrations = [
+        ("detections", "model_name", "ALTER TABLE detections ADD COLUMN model_name VARCHAR NOT NULL DEFAULT 'default'"),
+        ("detection_summaries", "model_name", "ALTER TABLE detection_summaries ADD COLUMN model_name VARCHAR NOT NULL DEFAULT 'default'"),
+    ]
+    for table, column, sql in migrations:
+        columns = await conn.exec_driver_sql(f"PRAGMA table_info({table})")
+        col_names = [row[1] for row in columns]
+        if column not in col_names:
+            logger.info(f"Migration: adding {column} to {table}")
+            await conn.exec_driver_sql(sql)
 
 
 async def get_db():

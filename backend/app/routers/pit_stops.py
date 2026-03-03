@@ -1,28 +1,25 @@
 import io
-import os
 import uuid
 from pathlib import Path
 
 import cv2
-import numpy as np
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select, func, delete
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..config import settings
 from ..database import get_db, get_sync_db
-from ..models import PitStop, Detection, DetectionSummary
+from ..models import Detection, DetectionSummary, PitStop
 from ..schemas import (
+    DetectionPage,
     PitStopBase,
     PitStopDetail,
     PitStopStatus,
-    DetectionOut,
-    DetectionPage,
+    ReprocessRequest,
     UploadResponse,
     YouTubeRequest,
-    ReprocessRequest,
 )
 from ..services.video_processor import process_video
 from ..services.youtube_downloader import download_and_process
@@ -137,6 +134,7 @@ async def get_detections(
     pit_stop_id: int,
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
+    model_name: str = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     # Verify pit stop exists
@@ -144,9 +142,14 @@ async def get_detections(
     if not ps.scalar_one_or_none():
         raise HTTPException(404, "Pit stop not found")
 
+    # Build filters
+    filters = [Detection.pit_stop_id == pit_stop_id]
+    if model_name:
+        filters.append(Detection.model_name == model_name)
+
     # Count total
     count_result = await db.execute(
-        select(func.count(Detection.id)).filter(Detection.pit_stop_id == pit_stop_id)
+        select(func.count(Detection.id)).filter(*filters)
     )
     total = count_result.scalar() or 0
 
@@ -154,7 +157,7 @@ async def get_detections(
     offset = (page - 1) * per_page
     result = await db.execute(
         select(Detection)
-        .filter(Detection.pit_stop_id == pit_stop_id)
+        .filter(*filters)
         .order_by(Detection.frame_number, Detection.id)
         .offset(offset)
         .limit(per_page)
@@ -182,16 +185,26 @@ async def delete_pit_stop(pit_stop_id: int, db: AsyncSession = Depends(get_db)):
 
 @router.post("/{pit_stop_id:int}/reprocess", status_code=202)
 async def reprocess(pit_stop_id: int, body: ReprocessRequest, db: AsyncSession = Depends(get_db)):
-    """Re-run detection on a video using a different model."""
+    """Re-run detection on a video using a different model (non-destructive)."""
     result = await db.execute(select(PitStop).filter(PitStop.id == pit_stop_id))
     pit_stop = result.scalar_one_or_none()
     if not pit_stop:
         raise HTTPException(404, "Pit stop not found")
 
-    # Clear old detections and summaries
-    await db.execute(delete(Detection).filter(Detection.pit_stop_id == pit_stop_id))
-    await db.execute(delete(DetectionSummary).filter(DetectionSummary.pit_stop_id == pit_stop_id))
-    pit_stop.status = "pending"
+    # Only clear detections/summaries for the specified model, preserving others
+    await db.execute(
+        delete(Detection).filter(
+            Detection.pit_stop_id == pit_stop_id,
+            Detection.model_name == body.model_name,
+        )
+    )
+    await db.execute(
+        delete(DetectionSummary).filter(
+            DetectionSummary.pit_stop_id == pit_stop_id,
+            DetectionSummary.model_name == body.model_name,
+        )
+    )
+    pit_stop.status = "processing"
     pit_stop.processed_frames = 0
     await db.commit()
 
@@ -202,10 +215,48 @@ async def reprocess(pit_stop_id: int, body: ReprocessRequest, db: AsyncSession =
     return {"message": f"Reprocessing started with model '{body.model_name}'"}
 
 
+@router.get("/{pit_stop_id:int}/models-used")
+async def get_models_used(pit_stop_id: int, db: AsyncSession = Depends(get_db)):
+    """Return distinct model names that have detections for this pit stop."""
+    ps = await db.execute(select(PitStop).filter(PitStop.id == pit_stop_id))
+    if not ps.scalar_one_or_none():
+        raise HTTPException(404, "Pit stop not found")
+
+    result = await db.execute(
+        select(Detection.model_name)
+        .filter(Detection.pit_stop_id == pit_stop_id)
+        .distinct()
+    )
+    models = [row[0] for row in result.all()]
+    return {"models": models}
+
+
+@router.get("/{pit_stop_id:int}/summaries")
+async def get_summaries_by_model(
+    pit_stop_id: int,
+    model_name: str = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return detection summaries, optionally filtered by model_name."""
+    ps = await db.execute(select(PitStop).filter(PitStop.id == pit_stop_id))
+    if not ps.scalar_one_or_none():
+        raise HTTPException(404, "Pit stop not found")
+
+    filters = [DetectionSummary.pit_stop_id == pit_stop_id]
+    if model_name:
+        filters.append(DetectionSummary.model_name == model_name)
+
+    result = await db.execute(
+        select(DetectionSummary).filter(*filters)
+    )
+    return result.scalars().all()
+
+
 @router.get("/{pit_stop_id:int}/preview-frame")
 async def preview_frame(
     pit_stop_id: int,
     frame_number: int = Query(None),
+    model_name: str = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
     """Return a single video frame with detection bounding boxes drawn on it."""
@@ -213,8 +264,8 @@ async def preview_frame(
     pit_stop = result.scalar_one_or_none()
     if not pit_stop:
         raise HTTPException(404, "Pit stop not found")
-    if pit_stop.status != "completed":
-        raise HTTPException(400, "Pit stop must be completed")
+    if pit_stop.status not in ("completed", "processing"):
+        raise HTTPException(400, "Pit stop must be completed or processing")
 
     video_path = str(Path(settings.UPLOAD_DIR) / pit_stop.filename)
     cap = cv2.VideoCapture(video_path)
@@ -234,12 +285,14 @@ async def preview_frame(
     # Get detections near this frame
     sync_db = get_sync_db()
     try:
-        dets = (
+        query = (
             sync_db.query(Detection)
             .filter(Detection.pit_stop_id == pit_stop_id)
             .filter(Detection.frame_number.between(target_frame - 2, target_frame + 2))
-            .all()
         )
+        if model_name:
+            query = query.filter(Detection.model_name == model_name)
+        dets = query.all()
 
         # Draw boxes
         colors = {

@@ -77,7 +77,7 @@ def add_frames_to_dataset_sync(dataset_id: int, frame_ids: list[int]):
         dataset.total_images += added
         dataset.total_labeled += sum(
             1 for fid in frame_ids
-            if db.query(ExtractedFrame).filter(ExtractedFrame.id == fid, ExtractedFrame.is_labeled == True).first()
+            if db.query(ExtractedFrame).filter(ExtractedFrame.id == fid, ExtractedFrame.is_labeled.is_(True)).first()
         )
         db.commit()
         logger.info(f"Added {added} frames to dataset {dataset.name}")

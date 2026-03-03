@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -7,14 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
 from ..database import get_db
-from ..models import TrainingRun, Dataset
+from ..models import Dataset, TrainingRun
 from ..schemas import (
+    TrainingProgress,
+    TrainingRunOut,
     TrainingStartRequest,
     TrainingStartResponse,
-    TrainingRunOut,
-    TrainingProgress,
 )
-from ..services.trainer import start_training, get_training_progress
+from ..services.trainer import get_training_progress, start_training
 
 router = APIRouter(prefix="/api/training", tags=["training"])
 

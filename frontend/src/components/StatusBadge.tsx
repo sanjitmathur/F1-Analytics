@@ -2,6 +2,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
   downloading: { bg: "#ede9fe", text: "#5b21b6", label: "Downloading" },
   pending: { bg: "#fef3c7", text: "#92400e", label: "Pending" },
   processing: { bg: "#dbeafe", text: "#1e40af", label: "Processing" },
+  reprocessing: { bg: "#e0e7ff", text: "#3730a3", label: "Reprocessing" },
   completed: { bg: "#d1fae5", text: "#065f46", label: "Completed" },
   failed: { bg: "#fee2e2", text: "#991b1b", label: "Failed" },
 };

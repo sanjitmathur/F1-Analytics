@@ -35,6 +35,7 @@ export interface Detection {
   bbox_y: number;
   bbox_w: number;
   bbox_h: number;
+  model_name: string;
 }
 
 export interface DetectionPage {
@@ -54,6 +55,7 @@ export interface DetectionSummary {
   max_confidence: number;
   first_seen_sec: number;
   last_seen_sec: number;
+  model_name: string;
 }
 
 export interface UploadResponse {

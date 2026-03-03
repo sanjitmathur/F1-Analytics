@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -39,6 +39,7 @@ class Detection(Base):
     bbox_y = Column(Float, nullable=False)
     bbox_w = Column(Float, nullable=False)
     bbox_h = Column(Float, nullable=False)
+    model_name = Column(String, nullable=False, default="default")
 
     pit_stop = relationship("PitStop", back_populates="detections")
 
@@ -56,6 +57,7 @@ class DetectionSummary(Base):
     max_confidence = Column(Float, nullable=False)
     first_seen_sec = Column(Float, nullable=False)
     last_seen_sec = Column(Float, nullable=False)
+    model_name = Column(String, nullable=False, default="default")
 
     pit_stop = relationship("PitStop", back_populates="summaries")
 

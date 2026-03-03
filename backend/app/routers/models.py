@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
 from ..config import settings
-from ..schemas import ModelInfo, ActiveModelRequest, LoadModelRequest
+from ..schemas import ActiveModelRequest, LoadModelRequest, ModelInfo
 from ..services.yolo_detector import detector
 
 router = APIRouter(prefix="/api/models", tags=["models"])

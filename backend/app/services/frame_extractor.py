@@ -7,7 +7,7 @@ import cv2
 
 from ..config import settings
 from ..database import get_sync_db
-from ..models import PitStop, ExtractedFrame
+from ..models import ExtractedFrame, PitStop
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,7 @@ def _extract_frames_sync(pit_stop_id: int, num_frames: int, strategy: str):
         _extraction_jobs[pit_stop_id]["extracted"] = extracted
         logger.info(f"Extracted {extracted} frames from pit stop {pit_stop_id}")
 
-    except Exception as e:
+    except Exception:
         logger.exception(f"Frame extraction failed for pit stop {pit_stop_id}")
         _extraction_jobs[pit_stop_id]["status"] = "failed"
         try:

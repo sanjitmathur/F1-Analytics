@@ -1,13 +1,12 @@
 import logging
 import threading
-from pathlib import Path
 
 import cv2
 from sqlalchemy import func
 
 from ..config import settings
 from ..database import get_sync_db
-from ..models import PitStop, Detection, DetectionSummary
+from ..models import Detection, DetectionSummary, PitStop
 from .yolo_detector import detector
 
 logger = logging.getLogger(__name__)
@@ -42,6 +41,9 @@ def _process_video_sync(pit_stop_id: int, video_path: str, sample_rate: int, mod
         if not pit_stop:
             logger.error(f"PitStop {pit_stop_id} not found")
             return
+
+        # Resolve effective model name
+        effective_model = model_name or detector.get_active_model_name() or "default"
 
         pit_stop.status = "processing"
         db.commit()
@@ -87,6 +89,7 @@ def _process_video_sync(pit_stop_id: int, video_path: str, sample_rate: int, mod
                         bbox_y=det["bbox_y"],
                         bbox_w=det["bbox_w"],
                         bbox_h=det["bbox_h"],
+                        model_name=effective_model,
                     ))
 
                 processed += 1
@@ -110,8 +113,8 @@ def _process_video_sync(pit_stop_id: int, video_path: str, sample_rate: int, mod
         pit_stop.processed_frames = processed
         db.commit()
 
-        # Compute summaries
-        _compute_summaries(db, pit_stop_id)
+        # Compute summaries for this model
+        _compute_summaries(db, pit_stop_id, effective_model)
 
         pit_stop.status = "completed"
         db.commit()
@@ -131,12 +134,14 @@ def _process_video_sync(pit_stop_id: int, video_path: str, sample_rate: int, mod
         db.close()
 
 
-def _compute_summaries(db, pit_stop_id: int):
-    """Aggregate detections into per-class summaries."""
-    from sqlalchemy import literal_column
+def _compute_summaries(db, pit_stop_id: int, model_name: str = "default"):
+    """Aggregate detections into per-class summaries for a specific model."""
 
-    # Delete old summaries if any
-    db.query(DetectionSummary).filter(DetectionSummary.pit_stop_id == pit_stop_id).delete()
+    # Delete old summaries only for this model
+    db.query(DetectionSummary).filter(
+        DetectionSummary.pit_stop_id == pit_stop_id,
+        DetectionSummary.model_name == model_name,
+    ).delete()
 
     rows = (
         db.query(
@@ -149,12 +154,11 @@ def _compute_summaries(db, pit_stop_id: int):
             func.max(Detection.timestamp_sec).label("last_seen_sec"),
         )
         .filter(Detection.pit_stop_id == pit_stop_id)
+        .filter(Detection.model_name == model_name)
         .group_by(Detection.class_name)
         .all()
     )
 
-    # Compute max detections per frame for each class
-    # (best approximation of actual object count in the scene)
     per_frame_subq = (
         db.query(
             Detection.class_name,
@@ -162,6 +166,7 @@ def _compute_summaries(db, pit_stop_id: int):
             func.count(Detection.id).label("frame_count"),
         )
         .filter(Detection.pit_stop_id == pit_stop_id)
+        .filter(Detection.model_name == model_name)
         .group_by(Detection.class_name, Detection.frame_number)
         .subquery()
     )
@@ -186,6 +191,7 @@ def _compute_summaries(db, pit_stop_id: int):
             max_confidence=round(float(row.max_confidence), 4),
             first_seen_sec=round(float(row.first_seen_sec), 3),
             last_seen_sec=round(float(row.last_seen_sec), 3),
+            model_name=model_name,
         )
         db.add(summary)
 

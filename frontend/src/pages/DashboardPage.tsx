@@ -119,9 +119,10 @@ export default function DashboardPage() {
       setPhase("processing");
       setProcessingPct(0);
       pollProcessing(res.id);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setPhase("error");
-      setErrorMsg(err?.response?.data?.detail || "Upload failed.");
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      setErrorMsg(axiosErr?.response?.data?.detail || "Upload failed.");
     }
   };
 
@@ -138,9 +139,10 @@ export default function DashboardPage() {
       const res = await submitYouTubeUrl(url);
       setPitStopId(res.id);
       pollProcessing(res.id);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setPhase("error");
-      setErrorMsg(err?.response?.data?.detail || "Failed to submit YouTube URL.");
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      setErrorMsg(axiosErr?.response?.data?.detail || "Failed to submit YouTube URL.");
     }
   };
 
