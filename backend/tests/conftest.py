@@ -71,11 +71,18 @@ async def client():
     """Async HTTP client for testing FastAPI endpoints."""
     app.dependency_overrides[get_db] = override_get_db
 
-    with patch("app.routers.pit_stops.get_sync_db") as mock_sync_db, \
+    # Create a real sync session factory bound to the test DB
+    from sqlalchemy.orm import Session
+    TestSyncSession = sessionmaker(test_sync_engine, class_=Session)
+
+    def _get_test_sync_db():
+        return TestSyncSession()
+
+    with patch("app.routers.pit_stops.get_sync_db", _get_test_sync_db), \
+         patch("app.services.trainer.get_sync_db", _get_test_sync_db), \
          patch("app.services.video_processor.detector", _mock_detector), \
          patch("app.routers.models.detector", _mock_detector), \
          patch("app.main.detector", _mock_detector):
-        mock_sync_db.return_value = MagicMock()
 
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
