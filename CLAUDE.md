@@ -99,17 +99,27 @@ Key formulas:
 - **Preset seeding**: 10 preset tracks are seeded into the DB on startup if they don't exist.
 
 ### Frontend Structure (`frontend/src/`)
-- `App.tsx` — React Router setup with 7 page routes
-- `pages/` — DashboardPage, SimulationSetupPage, SimulationResultsPage, MonteCarloResultsPage, TracksPage, DataImportPage, ComparisonPage, HeadToHeadPage, SeasonCalendarPage
-- `components/` — PositionChart, LapTimeChart, StrategyTimeline, MonteCarloDistribution, PositionHistogram, CircuitMap, DriverComparison
+- `App.tsx` — React Router setup with 12 page routes, navbar with active-link highlighting
+- `Landing.css` — Cinematic landing page styles (scrollable, multi-section with scroll-reveal animations)
+- `pages/LandingPage.tsx` — Full-screen landing with canvas particle system, animated RPM tachometer, live telemetry HUD, race position ticker, F1 start-lights launch sequence, speed warp transition, and scrollable sections (features, how-it-works vertical cards, tech stack, final CTA)
+- `pages/` — DashboardPage, SimulationSetupPage, SimulationResultsPage, MonteCarloResultsPage, TracksPage, DataImportPage, ComparisonPage, HeadToHeadPage, SeasonCalendarPage, RacePredictionPage, ChampionshipPage, WeatherAnalysisPage
+- `components/` — PositionChart, LapTimeChart, StrategyTimeline, MonteCarloDistribution, PositionHistogram, CircuitMap, DriverComparison, PodiumSpotlight, ChampionshipChart, AccuracyGauge, RaceCalendarCard, QualifyingBracket, WeatherBadge
 - `services/api.ts` — Axios client with all backend API methods
 - `types/index.ts` — TypeScript interfaces
 
+### Landing Page (`/`)
+Cinematic full-screen experience that serves as the app entry point:
+- **Hero section** (100vh): Animated particle field, racing line SVGs, gradient orbs, tachometer with live RPM, telemetry HUD (speed/gear/throttle/DRS/delta), race position ticker
+- **Scroll sections**: Features grid (6 cards), How It Works (3 vertical Baraka-style cards with visuals), Tech Stack (4 cards + stats strip), Final CTA
+- **Launch sequence**: F1 start lights (5 columns, lit sequentially) → "LIGHTS OUT" → speed warp → navigates to `/season/2026`
+- All sections use IntersectionObserver for scroll-reveal animations
+
 ### Data Flow
-1. User configures race (track + drivers + strategies) on SimulationSetupPage
-2. POST to `/api/simulations` creates run record and launches background thread
-3. Frontend polls `/api/simulations/{id}/status` for progress
-4. On completion, results/laps/MC data are fetched and visualized with Recharts
+1. User lands on `/` (cinematic landing page) → clicks "Enter Simulator" → start lights → navigates to 2026 Season
+2. User configures race (track + drivers + strategies) on SimulationSetupPage
+3. POST to `/api/simulations` creates run record and launches background thread
+4. Frontend polls `/api/simulations/{id}/status` for progress
+5. On completion, results/laps/MC data are fetched and visualized with Recharts
 
 ### API Proxy
 Vite dev server proxies `/api` requests to `http://localhost:8000`.
