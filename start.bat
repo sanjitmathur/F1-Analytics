@@ -1,7 +1,7 @@
 @echo off
-title F1 Pit Stop Analytics Dashboard
+title F1 AI Race Strategy Simulator
 echo ============================================
-echo   F1 Pit Stop Analytics Dashboard
+echo   F1 AI Race Strategy Simulator
 echo ============================================
 echo.
 

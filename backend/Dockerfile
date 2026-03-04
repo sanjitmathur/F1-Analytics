@@ -1,10 +1,5 @@
 FROM python:3.11-slim
 
-# System deps for OpenCV
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 libglib2.0-0 libsm6 libxrender1 libxext6 ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 COPY requirements.txt .
@@ -13,14 +8,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ app/
 
 # Create data directories
-RUN mkdir -p /data/uploads /data/extracted_frames /data/datasets /data/models
+RUN mkdir -p /data/fastf1_cache /data/csv_exports
 
-ENV UPLOAD_DIR=/data/uploads \
-    EXTRACTED_FRAMES_DIR=/data/extracted_frames \
-    DATASETS_DIR=/data/datasets \
-    MODELS_DIR=/data/models \
-    DATABASE_URL=sqlite+aiosqlite:////data/f1_pitstop.db \
-    SYNC_DATABASE_URL=sqlite:////data/f1_pitstop.db
+ENV FASTF1_CACHE_DIR=/data/fastf1_cache \
+    CSV_EXPORT_DIR=/data/csv_exports \
+    DATABASE_URL=sqlite+aiosqlite:////data/f1_strategy.db \
+    SYNC_DATABASE_URL=sqlite:////data/f1_strategy.db
 
 EXPOSE 8000
 

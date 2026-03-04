@@ -1,55 +1,117 @@
 import logging
 import platform
 from contextlib import asynccontextmanager
-from pathlib import Path
 
-import torch
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import select
 
-from .config import settings
-from .database import init_db
-from .routers import analytics, datasets, frames, models, pit_stops, training
-from .schemas import HealthResponse, SystemInfo
-from .services.yolo_detector import detector
+from .constants import CALENDAR_2026, PRESET_TRACKS
+from .database import AsyncSessionLocal, init_db
+from .models import RaceWeekend, Season, Track
+from .routers import (
+    accuracy,
+    data_import,
+    head_to_head,
+    monte_carlo,
+    predictions,
+    presets,
+    season,
+    simulations,
+    tracks,
+    weather,
+)
+from .schemas import HealthResponse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+async def seed_preset_tracks():
+    """Seed preset tracks if they don't exist."""
+    async with AsyncSessionLocal() as db:
+        for track_data in PRESET_TRACKS:
+            result = await db.execute(
+                select(Track).where(Track.name == track_data["name"])
+            )
+            if not result.scalar_one_or_none():
+                db.add(Track(**track_data, is_preset=True))
+        await db.commit()
+    logger.info(f"Seeded {len(PRESET_TRACKS)} preset tracks")
+
+
+async def seed_2026_season():
+    """Seed 2026 season + 24 race weekends from calendar constants."""
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(Season).where(Season.year == 2026))
+        season_row = result.scalar_one_or_none()
+        if season_row:
+            return  # already seeded
+
+        season_row = Season(year=2026, is_active=True)
+        db.add(season_row)
+        await db.flush()
+
+        for race in CALENDAR_2026:
+            db.add(RaceWeekend(
+                season_id=season_row.id,
+                round_number=race["round"],
+                name=race["name"],
+                track_name=race["track"],
+                country=race["country"],
+                race_date=race["date"].isoformat(),
+                lat=race["lat"],
+                lon=race["lon"],
+                total_laps=race["total_laps"],
+                base_lap_time=race["base_lap_time"],
+                pit_loss_time=race["pit_loss"],
+                drs_zones=race["drs_zones"],
+                overtake_difficulty=race["overtake_difficulty"],
+                safety_car_probability=race["sc_probability"],
+            ))
+        await db.commit()
+    logger.info(f"Seeded 2026 season with {len(CALENDAR_2026)} race weekends")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     logger.info("Initializing database...")
     await init_db()
-    logger.info("Loading YOLO model...")
-    detector.load_model()
+    await seed_preset_tracks()
+    await seed_2026_season()
     logger.info("Startup complete")
     yield
-    # Shutdown
     logger.info("Shutting down")
 
 
 app = FastAPI(
-    title="F1 Pit Stop Analytics",
-    version="0.1.0",
+    title="F1 AI Race Strategy Simulator",
+    version="1.0.0",
     lifespan=lifespan,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(pit_stops.router)
-app.include_router(frames.router)
-app.include_router(datasets.router)
-app.include_router(training.router)
-app.include_router(models.router)
-app.include_router(analytics.router)
+app.include_router(tracks.router)
+app.include_router(simulations.router)
+app.include_router(monte_carlo.router)
+app.include_router(data_import.router)
+app.include_router(presets.router)
+app.include_router(season.router)
+app.include_router(predictions.router)
+app.include_router(head_to_head.router)
+app.include_router(accuracy.router)
+app.include_router(weather.router)
 
 
 @app.get("/api/health", response_model=HealthResponse)
@@ -57,29 +119,10 @@ async def health_check():
     return HealthResponse(status="ok")
 
 
-@app.get("/api/system/info", response_model=SystemInfo)
+@app.get("/api/system/info")
 async def system_info():
-    import ultralytics
-
-    def dir_size(path: str) -> str:
-        p = Path(path)
-        if not p.exists():
-            return "0 MB"
-        total = sum(f.stat().st_size for f in p.rglob("*") if f.is_file())
-        if total > 1024 * 1024 * 1024:
-            return f"{total / (1024**3):.1f} GB"
-        return f"{total / (1024**2):.1f} MB"
-
-    return SystemInfo(
-        python_version=platform.python_version(),
-        yolo_version=ultralytics.__version__,
-        cuda_available=torch.cuda.is_available(),
-        gpu_name=torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
-        loaded_models=[m["name"] for m in detector.list_models()],
-        disk_usage={
-            "uploads": dir_size(settings.UPLOAD_DIR),
-            "extracted_frames": dir_size(settings.EXTRACTED_FRAMES_DIR),
-            "datasets": dir_size(settings.DATASETS_DIR),
-            "models": dir_size(settings.MODELS_DIR),
-        },
-    )
+    return {
+        "python_version": platform.python_version(),
+        "app": "F1 AI Race Strategy Simulator",
+        "version": "1.0.0",
+    }

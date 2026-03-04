@@ -1,307 +1,237 @@
 import axios from "axios";
 import type {
-  PitStop,
-  PitStopDetail,
-  PitStopStatus,
-  DetectionPage,
-  DetectionSummary,
-  UploadResponse,
-  ExtractedFramePage,
-  ExtractionStatus,
-  AnnotationLabel,
-  Dataset,
-  DatasetStats,
-  TrainingRun,
-  TrainingProgress,
-  ModelInfo,
-  SystemInfo,
-  PitStopAnalytics,
-  PitStopComparison,
+  Track,
+  SimulationRun,
+  SimulationStatus,
+  SimulationResult,
+  LapData,
+  MonteCarloResult,
+  ImportedRace,
+  PresetDriver,
+  PresetTrack,
+  TeamColors,
+  DriverConfig,
+  SeasonData,
+  RaceWeekend,
+  Driver2026,
+  ChampionshipStanding,
+  RacePrediction,
+  PredictionStatus,
+  PredictionResultItem,
+  HeadToHeadResult,
+  WeatherData,
+  AccuracyMetrics,
 } from "../types";
 
 const client = axios.create({ baseURL: "/api" });
 
-export async function uploadVideo(
-  file: File,
-  onProgress?: (pct: number) => void
-): Promise<UploadResponse> {
-  const form = new FormData();
-  form.append("file", file);
-  const { data } = await client.post<UploadResponse>("/pit-stops/upload", form, {
-    headers: { "Content-Type": "multipart/form-data" },
-    onUploadProgress: (e) => {
-      if (onProgress && e.total) {
-        onProgress(Math.round((e.loaded / e.total) * 100));
-      }
-    },
-  });
+// --- Tracks ---
+
+export async function listTracks(): Promise<Track[]> {
+  const { data } = await client.get<Track[]>("/tracks");
   return data;
 }
 
-export async function listPitStops(): Promise<PitStop[]> {
-  const { data } = await client.get<PitStop[]>("/pit-stops");
+export async function getTrack(id: number): Promise<Track> {
+  const { data } = await client.get<Track>(`/tracks/${id}`);
   return data;
 }
 
-export async function getPitStop(id: number): Promise<PitStopDetail> {
-  const { data } = await client.get<PitStopDetail>(`/pit-stops/${id}`);
+export async function createTrack(track: Omit<Track, "id" | "is_preset" | "created_at">): Promise<Track> {
+  const { data } = await client.post<Track>("/tracks", track);
   return data;
 }
 
-export async function getPitStopStatus(id: number): Promise<PitStopStatus> {
-  const { data } = await client.get<PitStopStatus>(`/pit-stops/${id}/status`);
+export async function deleteTrack(id: number): Promise<void> {
+  await client.delete(`/tracks/${id}`);
+}
+
+// --- Simulations ---
+
+export async function listSimulations(): Promise<SimulationRun[]> {
+  const { data } = await client.get<SimulationRun[]>("/simulations");
   return data;
 }
 
-export async function getDetections(
-  id: number,
-  page = 1,
-  perPage = 50,
-  modelName?: string
-): Promise<DetectionPage> {
-  const params: Record<string, unknown> = { page, per_page: perPage };
-  if (modelName) params.model_name = modelName;
-  const { data } = await client.get<DetectionPage>(
-    `/pit-stops/${id}/detections`,
-    { params }
-  );
+export async function startSimulation(config: {
+  name?: string;
+  track_id: number;
+  drivers: DriverConfig[];
+  sim_type: string;
+  num_simulations: number;
+  weather?: string;
+}): Promise<{ id: number; message: string }> {
+  const { data } = await client.post("/simulations", config);
   return data;
 }
 
-export async function submitYouTubeUrl(url: string): Promise<UploadResponse> {
-  const { data } = await client.post<UploadResponse>("/pit-stops/from-youtube", { url });
+export async function getSimulation(id: number): Promise<SimulationRun> {
+  const { data } = await client.get<SimulationRun>(`/simulations/${id}`);
   return data;
 }
 
-export async function deletePitStop(id: number): Promise<void> {
-  await client.delete(`/pit-stops/${id}`);
-}
-
-// --- Phase 2: Frame Extraction ---
-
-export async function extractFrames(
-  pitStopId: number,
-  numFrames: number = 100,
-  strategy: string = "uniform"
-): Promise<{ job_id: number; message: string }> {
-  const { data } = await client.post("/frames/extract", {
-    pit_stop_id: pitStopId,
-    num_frames: numFrames,
-    strategy,
-  });
+export async function getSimulationStatus(id: number): Promise<SimulationStatus> {
+  const { data } = await client.get<SimulationStatus>(`/simulations/${id}/status`);
   return data;
 }
 
-export async function getExtractionStatus(jobId: number): Promise<ExtractionStatus> {
-  const { data } = await client.get<ExtractionStatus>(`/frames/extract/${jobId}/status`);
+export async function getSimulationResults(id: number): Promise<SimulationResult[]> {
+  const { data } = await client.get<SimulationResult[]>(`/simulations/${id}/results`);
   return data;
 }
 
-export async function listFrames(
-  pitStopId?: number,
-  labeled?: boolean,
-  page = 1,
-  perPage = 50
-): Promise<ExtractedFramePage> {
-  const params: Record<string, unknown> = { page, per_page: perPage };
-  if (pitStopId !== undefined) params.pit_stop_id = pitStopId;
-  if (labeled !== undefined) params.labeled = labeled;
-  const { data } = await client.get<ExtractedFramePage>("/frames", { params });
+export async function getLapData(id: number, driver?: string): Promise<LapData[]> {
+  const params: Record<string, string> = {};
+  if (driver) params.driver = driver;
+  const { data } = await client.get<LapData[]>(`/simulations/${id}/laps`, { params });
   return data;
 }
 
-export function getFrameImageUrl(frameId: number): string {
-  return `/api/frames/${frameId}/image`;
+export async function deleteSimulation(id: number): Promise<void> {
+  await client.delete(`/simulations/${id}`);
 }
 
-export async function deleteFrame(frameId: number): Promise<void> {
-  await client.delete(`/frames/${frameId}`);
-}
+// --- Monte Carlo ---
 
-export async function annotateFrame(
-  frameId: number,
-  labels: AnnotationLabel[]
-): Promise<void> {
-  await client.post(`/frames/${frameId}/annotate`, { labels });
-}
-
-export async function getFrameAnnotations(
-  frameId: number
-): Promise<{ labels: AnnotationLabel[] }> {
-  const { data } = await client.get(`/frames/${frameId}/annotations`);
+export async function getMonteCarloResults(runId: number): Promise<MonteCarloResult> {
+  const { data } = await client.get<MonteCarloResult>(`/monte-carlo/${runId}`);
   return data;
 }
 
-// --- Phase 2: Datasets ---
+// --- Import ---
 
-export async function createDataset(
-  name: string,
-  description: string,
-  classNames: string[]
-): Promise<Dataset> {
-  const { data } = await client.post<Dataset>("/datasets", {
-    name,
-    description,
-    class_names: classNames,
-  });
+export async function listImports(): Promise<ImportedRace[]> {
+  const { data } = await client.get<ImportedRace[]>("/import");
   return data;
 }
 
-export async function listDatasets(): Promise<Dataset[]> {
-  const { data } = await client.get<Dataset[]>("/datasets");
+export async function importRace(year: number, grandPrix: string, sessionType: string = "Race"): Promise<{ id: number; message: string }> {
+  const { data } = await client.post("/import", { year, grand_prix: grandPrix, session_type: sessionType });
   return data;
 }
 
-export async function getDataset(id: number): Promise<Dataset> {
-  const { data } = await client.get<Dataset>(`/datasets/${id}`);
+// --- Presets ---
+
+export async function getPresetDrivers(): Promise<PresetDriver[]> {
+  const { data } = await client.get<PresetDriver[]>("/presets/drivers");
   return data;
 }
 
-export async function addFramesToDataset(
-  datasetId: number,
-  frameIds: number[]
-): Promise<void> {
-  await client.post(`/datasets/${datasetId}/add-frames`, { frame_ids: frameIds });
-}
-
-export async function splitDataset(
-  datasetId: number,
-  trainRatio = 0.8
-): Promise<void> {
-  await client.post(`/datasets/${datasetId}/split`, { train_ratio: trainRatio });
-}
-
-export async function getDatasetStats(id: number): Promise<DatasetStats> {
-  const { data } = await client.get<DatasetStats>(`/datasets/${id}/stats`);
+export async function getPresetTracks(): Promise<PresetTrack[]> {
+  const { data } = await client.get<PresetTrack[]>("/presets/tracks");
   return data;
 }
 
-export async function deleteDataset(id: number): Promise<void> {
-  await client.delete(`/datasets/${id}`);
-}
-
-// --- Phase 2: Training ---
-
-export async function startTraining(config: {
-  dataset_id: number;
-  model_name: string;
-  base_model?: string;
-  epochs?: number;
-  batch_size?: number;
-  image_size?: number;
-  patience?: number;
-}): Promise<{ training_run_id: number; message: string }> {
-  const { data } = await client.post("/training/start", config);
+export async function getTeamColors(): Promise<TeamColors> {
+  const { data } = await client.get<TeamColors>("/presets/team-colors");
   return data;
 }
 
-export async function getTrainingProgress(runId: number): Promise<TrainingProgress> {
-  const { data } = await client.get<TrainingProgress>(`/training/${runId}/status`);
+// --- Season ---
+
+export async function getSeasonData(year: number): Promise<SeasonData> {
+  const { data } = await client.get<SeasonData>(`/season/${year}`);
   return data;
 }
 
-export async function listTrainingRuns(): Promise<TrainingRun[]> {
-  const { data } = await client.get<TrainingRun[]>("/training");
+export async function getSeasonCalendar(year: number): Promise<RaceWeekend[]> {
+  const { data } = await client.get<RaceWeekend[]>(`/season/${year}/calendar`);
   return data;
 }
 
-export async function getTrainingRun(id: number): Promise<TrainingRun> {
-  const { data } = await client.get<TrainingRun>(`/training/${id}`);
+export async function getSeasonDrivers(year: number): Promise<Driver2026[]> {
+  const { data } = await client.get<Driver2026[]>(`/season/${year}/drivers`);
   return data;
 }
 
-// --- Phase 2: Models ---
-
-export async function listModels(): Promise<ModelInfo[]> {
-  const { data } = await client.get<ModelInfo[]>("/models");
+export async function getSeasonTeamColors(year: number): Promise<TeamColors> {
+  const { data } = await client.get<TeamColors>(`/season/${year}/team-colors`);
   return data;
 }
 
-export async function getActiveModel(): Promise<{ name: string; type: string }> {
-  const { data } = await client.get("/models/active");
+export async function getDriverStandings(year: number): Promise<ChampionshipStanding[]> {
+  const { data } = await client.get<ChampionshipStanding[]>(`/season/${year}/standings/driver`);
   return data;
 }
 
-export async function setActiveModel(modelName: string): Promise<void> {
-  await client.post("/models/active", { model_name: modelName });
-}
-
-export async function reprocessPitStop(
-  pitStopId: number,
-  modelName: string
-): Promise<void> {
-  await client.post(`/pit-stops/${pitStopId}/reprocess`, { model_name: modelName });
-}
-
-export async function getModelsUsed(
-  pitStopId: number
-): Promise<{ models: string[] }> {
-  const { data } = await client.get(`/pit-stops/${pitStopId}/models-used`);
+export async function getConstructorStandings(year: number): Promise<ChampionshipStanding[]> {
+  const { data } = await client.get<ChampionshipStanding[]>(`/season/${year}/standings/constructor`);
   return data;
 }
 
-export function getPreviewFrameUrl(
-  pitStopId: number,
-  frameNumber: number,
-  modelName?: string
-): string {
-  let url = `/api/pit-stops/${pitStopId}/preview-frame?frame_number=${frameNumber}`;
-  if (modelName) url += `&model_name=${encodeURIComponent(modelName)}`;
-  return url;
-}
+// --- Predictions ---
 
-export async function getSummariesByModel(
-  pitStopId: number,
-  modelName?: string
-): Promise<DetectionSummary[]> {
-  const params: Record<string, unknown> = {};
-  if (modelName) params.model_name = modelName;
-  const { data } = await client.get(`/pit-stops/${pitStopId}/summaries`, { params });
+export async function startRacePrediction(
+  raceWeekendId: number,
+  config: { num_simulations?: number; weather_override?: string; parameter_overrides?: Record<string, unknown> }
+): Promise<{ qualifying_prediction_id: number; race_prediction_id: number; message: string }> {
+  const { data } = await client.post(`/predictions/race/${raceWeekendId}`, config);
   return data;
 }
 
-// --- Phase 3: Analytics ---
-
-export async function runAnalysis(
-  pitStopId: number,
-  modelName?: string
-): Promise<PitStopAnalytics> {
-  const params: Record<string, unknown> = {};
-  if (modelName) params.model_name = modelName;
-  const { data } = await client.post<PitStopAnalytics>(
-    `/analytics/${pitStopId}/analyze`,
-    null,
-    { params }
-  );
+export async function getPredictionStatus(id: number): Promise<PredictionStatus> {
+  const { data } = await client.get<PredictionStatus>(`/predictions/${id}/status`);
   return data;
 }
 
-export async function getAnalytics(
-  pitStopId: number,
-  modelName?: string
-): Promise<PitStopAnalytics> {
-  const params: Record<string, unknown> = {};
-  if (modelName) params.model_name = modelName;
-  const { data } = await client.get<PitStopAnalytics>(
-    `/analytics/${pitStopId}`,
-    { params }
-  );
+export async function getPredictionResults(id: number): Promise<PredictionResultItem[]> {
+  const { data } = await client.get<PredictionResultItem[]>(`/predictions/${id}/results`);
   return data;
 }
 
-export async function comparePitStops(
-  ids: number[]
-): Promise<PitStopComparison> {
-  const { data } = await client.get<PitStopComparison>(
-    `/analytics/compare/multi`,
-    { params: { ids: ids.join(",") } }
-  );
+export async function getRaceWeekendPredictions(rwId: number): Promise<RacePrediction[]> {
+  const { data } = await client.get<RacePrediction[]>(`/predictions/race-weekend/${rwId}`);
   return data;
 }
 
-// --- System Info ---
+// --- Head to Head ---
 
-export async function getSystemInfo(): Promise<SystemInfo> {
-  const { data } = await client.get<SystemInfo>("/system/info");
+export async function getHeadToHead(d1: string, d2: string, track?: string): Promise<HeadToHeadResult> {
+  const params: Record<string, string> = { driver1: d1, driver2: d2 };
+  if (track) params.track = track;
+  const { data } = await client.get<HeadToHeadResult>("/head-to-head", { params });
+  return data;
+}
+
+export async function getSeasonHeadToHead(d1: string, d2: string): Promise<HeadToHeadResult> {
+  const { data } = await client.get<HeadToHeadResult>("/head-to-head/season", { params: { driver1: d1, driver2: d2 } });
+  return data;
+}
+
+// --- Accuracy ---
+
+export async function importActualResults(
+  rwId: number,
+  resultType: string,
+  results: { driver_name: string; actual_position: number; is_dnf?: boolean }[]
+): Promise<{ message: string; accuracy: AccuracyMetrics | null }> {
+  const { data } = await client.post(`/accuracy/import/${rwId}`, { result_type: resultType, results });
+  return data;
+}
+
+export async function getAccuracy(rwId: number): Promise<AccuracyMetrics[]> {
+  const { data } = await client.get<AccuracyMetrics[]>(`/accuracy/${rwId}`);
+  return data;
+}
+
+export async function getSeasonAccuracy(year: number): Promise<Record<string, number>> {
+  const { data } = await client.get(`/accuracy/season/${year}`);
+  return data;
+}
+
+// --- Weather ---
+
+export async function getRaceWeather(rwId: number): Promise<WeatherData> {
+  const { data } = await client.get<WeatherData>(`/weather/${rwId}`);
+  return data;
+}
+
+export async function refreshWeather(rwId: number): Promise<WeatherData> {
+  const { data } = await client.post<WeatherData>(`/weather/${rwId}/refresh`);
+  return data;
+}
+
+export async function getWeatherImpact(rwId: number): Promise<Record<string, unknown>> {
+  const { data } = await client.get(`/weather/${rwId}/impact`);
   return data;
 }
