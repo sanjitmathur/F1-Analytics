@@ -31,6 +31,7 @@
   pointer-events: none;
   opacity: 0;
   transition: opacity 1.5s ease;
+  will-change: transform;
 }
 
 .mounted .landing-orb { opacity: 1; }
@@ -318,6 +319,99 @@
   transform: translateY(0);
 }
 
+/* ─── Staggered fade-in from below ─── */
+.scroll-stagger {
+  opacity: 0;
+  transform: translateY(50px) scale(0.96);
+  filter: blur(6px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-stagger.stagger-in {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+/* ─── Staggered slide up (taller travel, for vertical boxes) ─── */
+.scroll-stagger-up {
+  opacity: 0;
+  transform: translateY(80px);
+  filter: blur(4px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-stagger-up.stagger-in {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+/* ─── Staggered slide from left ─── */
+.scroll-stagger-left {
+  opacity: 0;
+  transform: translateX(-60px) scale(0.97);
+  filter: blur(4px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-stagger-left.stagger-in {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  filter: blur(0);
+}
+
+/* ─── Staggered slide from right ─── */
+.scroll-stagger-right {
+  opacity: 0;
+  transform: translateX(60px) scale(0.97);
+  filter: blur(4px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-stagger-right.stagger-in {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  filter: blur(0);
+}
+
+/* ─── Scale + zoom in (for CTA section) ─── */
+.scroll-zoom {
+  opacity: 0;
+  transform: translateY(40px) scale(0.9);
+  filter: blur(8px);
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 1s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.scroll-zoom.zoom-in {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+/* ─── Glow line between sections (animated) ─── */
+.landing-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(225,6,0,0.3), rgba(68,138,255,0.2), transparent);
+  transform: translateX(-50%);
+  transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+}
+.landing-section:has(.revealed)::before,
+.landing-section:has(.stagger-in)::before,
+.landing-section:has(.zoom-in)::before {
+  width: 60%;
+}
+
 .ls-label {
   display: inline-flex; align-items: center; gap: 10px;
   font-family: 'Orbitron', sans-serif; font-size: 10px; font-weight: 700;
@@ -358,7 +452,12 @@
 .ls-feature-card:hover {
   background: rgba(255,255,255,0.04);
   border-color: rgba(255,255,255,0.1);
-  transform: translateY(-4px);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3), 0 0 30px rgba(225,6,0,0.04);
+}
+.ls-feature-card:hover .ls-feature-icon {
+  transform: scale(1.1) rotate(-3deg);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .ls-feature-icon {

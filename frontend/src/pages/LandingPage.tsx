@@ -356,8 +356,34 @@ function ScrollIndicator() {
   );
 }
 
+/* ─── Scroll progress tracker (0-1 as element traverses viewport) ─── */
+function useScrollProgress() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const wrapper = el.closest(".landing-scroll-wrapper");
+    if (!wrapper) return;
+
+    const onScroll = () => {
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight;
+      // 0 when bottom of el enters viewport, 1 when top leaves
+      const p = Math.min(Math.max((vh - rect.top) / (vh + rect.height), 0), 1);
+      setProgress(p);
+    };
+    wrapper.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => wrapper.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return { ref, progress };
+}
+
 /* ─── Intersection Observer hook for scroll animations ─── */
-function useReveal() {
+function useReveal(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -366,13 +392,45 @@ function useReveal() {
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setVisible(true); },
-      { threshold: 0.15 }
+      { threshold, rootMargin: "0px 0px -40px 0px" }
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, []);
+  }, [threshold]);
 
   return { ref, visible };
+}
+
+/* ─── Animated counter ─── */
+function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !started.current) {
+        started.current = true;
+        const duration = 1800;
+        const startTime = performance.now();
+        const animate = (now: number) => {
+          const elapsed = now - startTime;
+          const p = Math.min(elapsed / duration, 1);
+          // ease-out cubic
+          const eased = 1 - Math.pow(1 - p, 3);
+          setCount(Math.round(eased * target));
+          if (p < 1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+      }
+    }, { threshold: 0.5 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [target]);
+
+  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
 
 /* ═══════════════════════════════════════════
@@ -403,20 +461,24 @@ export default function LandingPage() {
   }, [launching, navigate]);
 
   /* Section reveals */
-  const features = useReveal();
-  const howItWorks = useReveal();
-  const techStack = useReveal();
-  const cta2 = useReveal();
+  const features = useReveal(0.1);
+  const howItWorks = useReveal(0.1);
+  const techStack = useReveal(0.1);
+  const cta2 = useReveal(0.1);
+
+  /* Parallax on background elements */
+  const parallax = useScrollProgress();
+  const parallaxY = (parallax.progress - 0.5) * -80;
 
   return (
     <div className={`landing-page ${mounted ? "mounted" : ""} ${launching ? "launching" : ""}`}>
       <ParticleField />
       <RacingLine />
 
-      <div className="landing-orb landing-orb-1" />
-      <div className="landing-orb landing-orb-2" />
-      <div className="landing-orb landing-orb-3" />
-      <div className="landing-grid" />
+      <div className="landing-orb landing-orb-1" style={{ transform: `translate(0, ${parallaxY * 0.5}px)` }} />
+      <div className="landing-orb landing-orb-2" style={{ transform: `translate(0, ${parallaxY * -0.3}px)` }} />
+      <div className="landing-orb landing-orb-3" style={{ transform: `translate(0, ${parallaxY * 0.7}px)` }} />
+      <div className="landing-grid" ref={parallax.ref} />
 
       {lightPhase > 0 && <StartLights phase={lightPhase} />}
       <SpeedWarp active={warpActive} />
@@ -502,65 +564,22 @@ export default function LandingPage() {
             </p>
 
             <div className="ls-features-grid">
-              <div className="ls-feature-card">
-                <div className="ls-feature-icon ls-icon-red">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 6v6l4 2" />
-                  </svg>
+              {[
+                { icon: "red", svg: <><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></>, title: "Tire Degradation", desc: "Realistic compound modeling — Soft, Medium, Hard — each with unique degradation curves that affect lap times progressively." },
+                { icon: "blue", svg: <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />, title: "Overtake Engine", desc: "Gap-based probabilistic overtaking using a sigmoid curve. A 0.3s gap gives ~70% chance — just like real DRS zones." },
+                { icon: "yellow", svg: <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></>, title: "Safety Cars", desc: "Random safety car events (~3% per lap, configurable per track) that compress the field and reshape pit strategy windows." },
+                { icon: "green", svg: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />, title: "Monte Carlo", desc: "Run 1,000+ simulations to generate win probability, podium chances, and full position distributions for every driver." },
+                { icon: "purple", svg: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></>, title: "Pit Strategy", desc: "Configure multi-stop strategies per driver. The engine evaluates 20-25s pit losses, tire resets, and optimal undercut timing." },
+                { icon: "red", svg: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />, title: "2026 Season", desc: "Full 24-race calendar with AI predictions for every Grand Prix, championship standings, and head-to-head driver comparisons." },
+              ].map((feat, i) => (
+                <div key={feat.title} className={`ls-feature-card scroll-stagger ${features.visible ? "stagger-in" : ""}`} style={{ transitionDelay: `${i * 0.1}s` }}>
+                  <div className={`ls-feature-icon ls-icon-${feat.icon}`}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{feat.svg}</svg>
+                  </div>
+                  <h3>{feat.title}</h3>
+                  <p>{feat.desc}</p>
                 </div>
-                <h3>Tire Degradation</h3>
-                <p>Realistic compound modeling — Soft, Medium, Hard — each with unique degradation curves that affect lap times progressively.</p>
-              </div>
-              <div className="ls-feature-card">
-                <div className="ls-feature-icon ls-icon-blue">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                  </svg>
-                </div>
-                <h3>Overtake Engine</h3>
-                <p>Gap-based probabilistic overtaking using a sigmoid curve. A 0.3s gap gives ~70% chance — just like real DRS zones.</p>
-              </div>
-              <div className="ls-feature-card">
-                <div className="ls-feature-icon ls-icon-yellow">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                    <line x1="12" y1="9" x2="12" y2="13" />
-                    <line x1="12" y1="17" x2="12.01" y2="17" />
-                  </svg>
-                </div>
-                <h3>Safety Cars</h3>
-                <p>Random safety car events (~3% per lap, configurable per track) that compress the field and reshape pit strategy windows.</p>
-              </div>
-              <div className="ls-feature-card">
-                <div className="ls-feature-icon ls-icon-green">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-                  </svg>
-                </div>
-                <h3>Monte Carlo</h3>
-                <p>Run 1,000+ simulations to generate win probability, podium chances, and full position distributions for every driver.</p>
-              </div>
-              <div className="ls-feature-card">
-                <div className="ls-feature-icon ls-icon-purple">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <line x1="3" y1="9" x2="21" y2="9" />
-                    <line x1="9" y1="21" x2="9" y2="9" />
-                  </svg>
-                </div>
-                <h3>Pit Strategy</h3>
-                <p>Configure multi-stop strategies per driver. The engine evaluates 20-25s pit losses, tire resets, and optimal undercut timing.</p>
-              </div>
-              <div className="ls-feature-card">
-                <div className="ls-feature-icon ls-icon-red">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                </div>
-                <h3>2026 Season</h3>
-                <p>Full 24-race calendar with AI predictions for every Grand Prix, championship standings, and head-to-head driver comparisons.</p>
-              </div>
+              ))}
             </div>
           </div>
         </section>
@@ -578,7 +597,7 @@ export default function LandingPage() {
             </p>
 
             <div className="ls-vboxes">
-              <div className="ls-vbox">
+              <div className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0s" }}>
                 <div className="ls-vbox-top">
                   <span className="ls-vbox-num">01</span>
                   <div className="ls-vbox-icon ls-icon-red">
@@ -596,7 +615,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="ls-vbox">
+              <div className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0.15s" }}>
                 <div className="ls-vbox-top">
                   <span className="ls-vbox-num">02</span>
                   <div className="ls-vbox-icon ls-icon-blue">
@@ -616,7 +635,7 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              <div className="ls-vbox">
+              <div className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0.3s" }}>
                 <div className="ls-vbox-top">
                   <span className="ls-vbox-num">03</span>
                   <div className="ls-vbox-icon ls-icon-green">
@@ -653,46 +672,38 @@ export default function LandingPage() {
             </p>
 
             <div className="ls-tech-grid">
-              <div className="ls-tech-card">
-                <div className="ls-tech-label">BACKEND</div>
-                <div className="ls-tech-name">Python + FastAPI</div>
-                <p>Async API with SQLAlchemy 2.0, background thread simulation, and SQLite with WAL mode for concurrent reads.</p>
-              </div>
-              <div className="ls-tech-card">
-                <div className="ls-tech-label">FRONTEND</div>
-                <div className="ls-tech-name">React + TypeScript</div>
-                <p>React 19 with Vite 7, React Router 7, and Recharts for interactive position charts, lap time graphs, and probability distributions.</p>
-              </div>
-              <div className="ls-tech-card">
-                <div className="ls-tech-label">SIMULATION</div>
-                <div className="ls-tech-name">Pure Python Engine</div>
-                <p>Zero framework dependencies. Lap model, overtake model, pit strategy optimizer, safety car module, and Monte Carlo aggregator.</p>
-              </div>
-              <div className="ls-tech-card">
-                <div className="ls-tech-label">DATA</div>
-                <div className="ls-tech-name">FastF1 Integration</div>
-                <p>Import real historical race data from 2020-2025. Compare simulation predictions against actual results for validation.</p>
-              </div>
+              {[
+                { label: "BACKEND", name: "Python + FastAPI", desc: "Async API with SQLAlchemy 2.0, background thread simulation, and SQLite with WAL mode for concurrent reads.", dir: "left" },
+                { label: "FRONTEND", name: "React + TypeScript", desc: "React 19 with Vite 7, React Router 7, and Recharts for interactive position charts, lap time graphs, and probability distributions.", dir: "right" },
+                { label: "SIMULATION", name: "Pure Python Engine", desc: "Zero framework dependencies. Lap model, overtake model, pit strategy optimizer, safety car module, and Monte Carlo aggregator.", dir: "left" },
+                { label: "DATA", name: "FastF1 Integration", desc: "Import real historical race data from 2020-2025. Compare simulation predictions against actual results for validation.", dir: "right" },
+              ].map((tech, i) => (
+                <div key={tech.label} className={`ls-tech-card scroll-stagger-${tech.dir} ${techStack.visible ? "stagger-in" : ""}`} style={{ transitionDelay: `${i * 0.12}s` }}>
+                  <div className="ls-tech-label">{tech.label}</div>
+                  <div className="ls-tech-name">{tech.name}</div>
+                  <p>{tech.desc}</p>
+                </div>
+              ))}
             </div>
 
-            <div className="ls-stats-strip">
+            <div className={`ls-stats-strip scroll-stagger-up ${techStack.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0.5s" }}>
               <div className="ls-stat-item">
-                <span className="ls-stat-num">10+</span>
+                <span className="ls-stat-num"><AnimatedCounter target={10} suffix="+" /></span>
                 <span className="ls-stat-desc">Real F1 Circuits</span>
               </div>
               <div className="ls-stat-divider" />
               <div className="ls-stat-item">
-                <span className="ls-stat-num">20</span>
+                <span className="ls-stat-num"><AnimatedCounter target={20} /></span>
                 <span className="ls-stat-desc">Preset Drivers</span>
               </div>
               <div className="ls-stat-divider" />
               <div className="ls-stat-item">
-                <span className="ls-stat-num">1,000+</span>
+                <span className="ls-stat-num"><AnimatedCounter target={1000} suffix="+" /></span>
                 <span className="ls-stat-desc">MC Simulations</span>
               </div>
               <div className="ls-stat-divider" />
               <div className="ls-stat-item">
-                <span className="ls-stat-num">57</span>
+                <span className="ls-stat-num"><AnimatedCounter target={57} /></span>
                 <span className="ls-stat-desc">Laps Per Race</span>
               </div>
             </div>
@@ -701,7 +712,7 @@ export default function LandingPage() {
 
         {/* ─── SECTION 5: Final CTA ─── */}
         <section className="landing-section landing-section-cta" ref={cta2.ref}>
-          <div className={`landing-section-inner ${cta2.visible ? "revealed" : ""}`}>
+          <div className={`landing-section-inner scroll-zoom ${cta2.visible ? "revealed zoom-in" : ""}`}>
             <div className="ls-cta-circuit">
               <CircuitMap trackName="Monza" color="#e10600" opacity={0.06} size={500} />
             </div>
