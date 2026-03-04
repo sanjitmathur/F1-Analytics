@@ -78,144 +78,145 @@ export default function SimulationResultsPage() {
 
   return (
     <div>
-      {/* ═══ HERO SECTION ═══ */}
-      <div style={{
-        position: "relative",
-        overflow: "hidden",
-        borderRadius: "var(--radius-lg)",
-        background: `linear-gradient(135deg, ${winnerColor}0A 0%, var(--bg-card) 40%, ${winnerColor}06 100%)`,
-        border: `1px solid ${winnerColor}20`,
-        marginBottom: 20,
-        padding: "48px 40px",
-        minHeight: 320,
-      }}>
-        {/* Circuit map background */}
-        <div style={{
-          position: "absolute",
-          right: 40,
-          top: "50%",
-          transform: "translateY(-50%)",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}>
-          <CircuitMap trackName={sim.track_name || ""} color={winnerColor} opacity={0.18} size={320} />
-        </div>
+      {/* ═══ CINEMATIC HERO SECTION ═══ */}
+      <div
+        className="results-hero"
+        style={{
+          background: `linear-gradient(135deg, ${winnerColor}0A 0%, var(--bg-card) 30%, ${winnerColor}08 70%, var(--bg-card) 100%)`,
+          borderColor: `${winnerColor}20`,
+        }}
+      >
+        {/* Checkered strip along bottom */}
+        <div className="results-checkered" />
 
-        {/* Ambient glow — team color */}
-        <div style={{
-          position: "absolute",
-          top: -100,
-          right: -50,
-          width: 500,
-          height: 500,
-          borderRadius: "50%",
+        {/* Ambient glows */}
+        <div className="results-hero-glow" style={{
+          top: -100, right: -50,
           background: `radial-gradient(circle, ${winnerColor}18 0%, ${winnerColor}08 30%, transparent 70%)`,
-          pointerEvents: "none",
-          zIndex: 0,
         }} />
-        {/* Secondary glow bottom-left */}
-        <div style={{
-          position: "absolute",
-          bottom: -80,
-          left: -80,
-          width: 300,
-          height: 300,
-          borderRadius: "50%",
+        <div className="results-hero-glow" style={{
+          bottom: -80, left: -80, width: 300, height: 300,
           background: `radial-gradient(circle, ${winnerColor}0C 0%, transparent 70%)`,
-          pointerEvents: "none",
-          zIndex: 0,
         }} />
 
-        {/* Content */}
-        <div style={{ position: "relative", zIndex: 1 }}>
-          {/* Top bar: track label + back link */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
-            <div>
-              <div style={{
-                fontSize: 10,
-                textTransform: "uppercase",
-                letterSpacing: 3,
-                color: winnerColor,
-                fontWeight: 700,
-                marginBottom: 4,
-              }}>
-                {sim.track_name}
-              </div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                {sim.name || "Race Simulation"}
-              </div>
-            </div>
-            <Link to="/dashboard" className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}>Back</Link>
+        {/* Back button — top-right */}
+        <Link to="/dashboard" className="btn btn-ghost btn-sm results-hero-back">Back</Link>
+
+        {/* ─── Left Column ─── */}
+        <div className="results-hero-left">
+          {/* Track tag with pulsing dot */}
+          <div className="results-track-tag">
+            <span className="results-pulse-dot" style={{ background: winnerColor, boxShadow: `0 0 8px ${winnerColor}` }} />
+            <span>{sim.track_name}</span>
           </div>
 
-          {/* Winner name — large */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{
-              fontSize: 10,
-              textTransform: "uppercase",
-              letterSpacing: 3,
-              color: "var(--text-muted)",
-              marginBottom: 8,
-            }}>
-              Race Winner
-            </div>
-            <div style={{
-              fontFamily: "'Orbitron', sans-serif",
-              fontSize: 48,
-              fontWeight: 900,
-              lineHeight: 1,
-              letterSpacing: -1,
-              marginBottom: 6,
-            }}>
-              {winner?.driver_name}
-            </div>
-            <div style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: winnerColor,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}>
-              <span style={{
-                width: 4,
-                height: 16,
-                borderRadius: 2,
-                background: winnerColor,
-                display: "inline-block",
-              }} />
-              {winner?.team}
-            </div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 24 }}>
+            {sim.name || "Race Simulation"}
           </div>
 
-          {/* Stats row */}
-          <div style={{ display: "flex", gap: 40 }}>
+          {/* "RACE WINNER" label */}
+          <div className="results-winner-label">Race Winner</div>
+
+          {/* Giant driver name */}
+          <h1
+            className="results-winner-name"
+            style={{
+              backgroundImage: `linear-gradient(135deg, #ffffff 40%, ${winnerColor} 100%)`,
+              textShadow: `0 0 60px ${winnerColor}30`,
+            }}
+          >
+            {winner?.driver_name}
+          </h1>
+
+          {/* Team with color bar */}
+          <div className="results-team-row" style={{ color: winnerColor }}>
+            <span className="results-team-bar" style={{ background: winnerColor }} />
+            {winner?.team}
+          </div>
+
+          {/* Stats row with staggered fade */}
+          <div className="results-stats-row">
             {[
               { label: "Race Time", value: winner ? formatTime(winner.total_time) : "—" },
               { label: "Best Lap", value: winner?.best_lap_time ? formatTime(winner.best_lap_time) : "—" },
               { label: "Pit Stops", value: String(winner?.pit_stops ?? "—") },
               { label: "Laps", value: String(totalLaps) },
               { label: "Gained", value: winner ? (winner.positions_gained > 0 ? `+${winner.positions_gained}` : winner.positions_gained === 0 ? "—" : String(winner.positions_gained)) : "—" },
-            ].map(s => (
-              <div key={s.label}>
-                <div style={{
-                  fontFamily: "'Orbitron', sans-serif",
-                  fontSize: 18,
-                  fontWeight: 800,
-                }}>
-                  {s.value}
-                </div>
-                <div style={{
-                  fontSize: 9,
-                  color: "var(--text-muted)",
-                  textTransform: "uppercase",
-                  letterSpacing: 1.5,
-                  marginTop: 2,
-                }}>
-                  {s.label}
-                </div>
+            ].map((s, i) => (
+              <div key={s.label} className="results-hero-stat" style={{ animationDelay: `${0.6 + i * 0.1}s` }}>
+                <div className="results-stat-value">{s.value}</div>
+                <div className="results-stat-label">{s.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* ─── Right Column (visual) ─── */}
+        <div className="results-hero-right">
+          {/* Giant driver number background */}
+          <div className="results-number-bg" style={{ color: `${winnerColor}08` }}>
+            {winner ? String(winner.position - winner.positions_gained).padStart(2, "0") : "01"}
+          </div>
+
+          {/* Rotating circuit map */}
+          <div className="results-circuit-spin">
+            <CircuitMap trackName={sim.track_name || ""} color={winnerColor} opacity={0.2} size={280} />
+          </div>
+
+          {/* Helmet SVG — team colored */}
+          <svg className="results-helmet-svg" viewBox="0 0 300 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="resHelmetGrad" x1="0" y1="0" x2="300" y2="280" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.12)" />
+                <stop offset="50%" stopColor="rgba(255,255,255,0.04)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0.01)" />
+              </linearGradient>
+              <linearGradient id="resVisorGrad" x1="60" y1="130" x2="230" y2="180" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor={winnerColor} stopOpacity={0.6} />
+                <stop offset="50%" stopColor={winnerColor} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={winnerColor} stopOpacity={0.1} />
+              </linearGradient>
+              <filter id="resVisorGlow">
+                <feGaussianBlur stdDeviation="8" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <path
+              d="M150 30 C80 30, 30 80, 30 150 C30 200, 50 240, 90 260 L210 260 C250 240, 270 200, 270 150 C270 80, 220 30, 150 30Z"
+              fill="url(#resHelmetGrad)"
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth="1.5"
+            />
+            <path
+              d="M70 135 C70 120, 90 110, 150 110 C210 110, 230 120, 230 135 L220 175 C210 190, 180 195, 150 195 C120 195, 90 190, 80 175 Z"
+              fill="url(#resVisorGrad)"
+              filter="url(#resVisorGlow)"
+            />
+            <path
+              d="M85 140 Q150 125, 220 140"
+              stroke="rgba(255,255,255,0.15)"
+              strokeWidth="1"
+              fill="none"
+            />
+          </svg>
+
+          {/* Floating telemetry pills */}
+          <div className="results-telemetry">
+            <div className="results-telemetry-pill">
+              <span className="results-tele-label">BEST</span>
+              <span className="results-tele-value">{winner?.best_lap_time ? formatTime(winner.best_lap_time) : "—"}</span>
+            </div>
+            <div className="results-telemetry-pill">
+              <span className="results-tele-label">STOPS</span>
+              <span className="results-tele-value">{winner?.pit_stops ?? "—"}</span>
+            </div>
+            <div className="results-telemetry-pill">
+              <span className="results-tele-label">+/-</span>
+              <span className="results-tele-value">{winner ? (winner.positions_gained > 0 ? `+${winner.positions_gained}` : winner.positions_gained === 0 ? "0" : String(winner.positions_gained)) : "—"}</span>
+            </div>
           </div>
         </div>
       </div>

@@ -55,7 +55,7 @@ export default function SeasonCalendarPage() {
                   cursor: "pointer",
                   fontSize: 12,
                   fontWeight: 600,
-                  background: mode === "predicted" ? "var(--accent-red)" : "transparent",
+                  background: mode === "predicted" ? "var(--f1-red)" : "transparent",
                   color: mode === "predicted" ? "#fff" : "var(--text-muted)",
                   transition: "all 0.2s ease",
                 }}
@@ -101,7 +101,7 @@ export default function SeasonCalendarPage() {
               <>
                 <h1 style={{ margin: 0 }}>{driverStandings[0].entity_name}</h1>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 16, marginTop: 4 }}>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}><strong style={{ color: "var(--accent-red)", fontFamily: "'Orbitron', sans-serif" }}>{driverStandings[0].points.toFixed(0)}</strong> pts</span>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}><strong style={{ color: "var(--f1-red)", fontFamily: "'Orbitron', sans-serif" }}>{driverStandings[0].points.toFixed(0)}</strong> pts</span>
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}><strong style={{ color: "var(--accent-green)" }}>{driverStandings[0].wins}</strong> wins</span>
                 </div>
               </>
@@ -126,7 +126,7 @@ export default function SeasonCalendarPage() {
                   {constructorStandings[0].entity_name}
                 </h1>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 16, marginTop: 4 }}>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}><strong style={{ color: "var(--accent-red)", fontFamily: "'Orbitron', sans-serif" }}>{constructorStandings[0].points.toFixed(0)}</strong> pts</span>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}><strong style={{ color: "var(--f1-red)", fontFamily: "'Orbitron', sans-serif" }}>{constructorStandings[0].points.toFixed(0)}</strong> pts</span>
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}><strong style={{ color: "var(--accent-green)" }}>{constructorStandings[0].wins}</strong> wins</span>
                 </div>
               </>

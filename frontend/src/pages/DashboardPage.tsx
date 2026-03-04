@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { listSimulations, deleteSimulation } from "../services/api";
 import type { SimulationRun } from "../types";
+import CircuitMap from "../components/CircuitMap";
 
 export default function DashboardPage() {
   const [sims, setSims] = useState<SimulationRun[]>([]);
@@ -39,8 +40,11 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {/* Hero Section */}
-      <div style={{ marginBottom: 56 }} className="animate-in">
+      {/* Hero Section with Circuit Map background */}
+      <div className="dashboard-hero animate-in">
+        <div className="dashboard-hero-circuit">
+          <CircuitMap trackName="Silverstone" color="var(--f1-red)" opacity={0.06} size={480} />
+        </div>
         <div className="section-label">Race Strategy</div>
         <h1 style={{
           fontFamily: "'Orbitron', sans-serif",
@@ -59,32 +63,82 @@ export default function DashboardPage() {
         <p style={{ color: "var(--text-secondary)", fontSize: 16, maxWidth: 500, lineHeight: 1.7 }}>
           Model F1 races lap-by-lap with tire degradation, overtakes, pit strategies, safety cars, and Monte Carlo predictions.
         </p>
-        <div style={{ marginTop: 32, display: "flex", gap: 12 }}>
-          <Link to="/simulate" className="btn btn-primary">
-            New Simulation
-          </Link>
-          <Link to="/tracks" className="btn btn-secondary">
-            Browse Circuits
-          </Link>
-        </div>
+      </div>
+
+      {/* Action Cards */}
+      <div className="dashboard-actions animate-in">
+        <Link to="/simulate" className="action-card action-card-primary">
+          <div className="action-card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+          </div>
+          <div className="action-card-content">
+            <div className="action-card-title">New Simulation</div>
+            <div className="action-card-desc">Configure drivers, strategies and run a race</div>
+          </div>
+          <div className="action-card-arrow">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 8H13M13 8L9 4M13 8L9 12" />
+            </svg>
+          </div>
+        </Link>
+
+        <Link to="/tracks" className="action-card">
+          <div className="action-card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+          </div>
+          <div className="action-card-content">
+            <div className="action-card-title">Browse Circuits</div>
+            <div className="action-card-desc">Explore 10+ F1 circuits with track data</div>
+          </div>
+          <div className="action-card-arrow">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 8H13M13 8L9 4M13 8L9 12" />
+            </svg>
+          </div>
+        </Link>
+
+        <Link to="/season/2026" className="action-card">
+          <div className="action-card-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </div>
+          <div className="action-card-content">
+            <div className="action-card-title">2026 Season</div>
+            <div className="action-card-desc">Full calendar with race predictions</div>
+          </div>
+          <div className="action-card-arrow">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 8H13M13 8L9 4M13 8L9 12" />
+            </svg>
+          </div>
+        </Link>
       </div>
 
       {/* Stats Row */}
       {sims.length > 0 && (
         <div className="grid-4 animate-in" style={{ marginBottom: 40 }}>
-          <div className="stat-card">
+          <div className="stat-card stat-card-red">
             <div className="stat-value">{sims.length}</div>
             <div className="stat-label">Total Sims</div>
           </div>
-          <div className="stat-card">
+          <div className="stat-card stat-card-green">
             <div className="stat-value" style={{ color: "var(--accent-green)" }}>{completedCount}</div>
             <div className="stat-label">Completed</div>
           </div>
-          <div className="stat-card">
+          <div className="stat-card stat-card-blue">
             <div className="stat-value" style={{ color: "var(--accent-blue)" }}>{mcCount}</div>
             <div className="stat-label">Monte Carlo</div>
           </div>
-          <div className="stat-card">
+          <div className="stat-card stat-card-yellow">
             <div className="stat-value" style={{ color: "var(--accent-yellow)" }}>{totalDrivers}</div>
             <div className="stat-label">Drivers Simulated</div>
           </div>
@@ -93,14 +147,21 @@ export default function DashboardPage() {
 
       <div className="glow-divider" />
 
-      {/* Simulation list */}
+      {/* Simulation list or empty state */}
       {sims.length === 0 ? (
-        <div className="empty-state animate-in">
+        <div className="empty-state-enhanced animate-in">
+          <div className="empty-state-circuit">
+            <CircuitMap trackName="Monaco" color="var(--f1-red)" opacity={0.1} size={200} />
+            <div className="empty-state-pulse" />
+          </div>
           <h3>No Simulations Yet</h3>
           <p>Create your first race strategy simulation and watch AI predict the outcome.</p>
-          <Link to="/simulate" className="btn btn-primary">
-            Create Simulation
-          </Link>
+          <div className="feature-tags">
+            <span className="feature-tag">Tire Strategy</span>
+            <span className="feature-tag">Overtake Model</span>
+            <span className="feature-tag">Safety Cars</span>
+            <span className="feature-tag">Monte Carlo</span>
+          </div>
         </div>
       ) : (
         <div>

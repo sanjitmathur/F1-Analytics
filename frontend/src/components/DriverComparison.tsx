@@ -38,8 +38,8 @@ export default function DriverComparison({ data, teamColors, driver1Team, driver
     <div>
       {/* Header with team color accents */}
       <div style={{
-        display: "flex",
-        justifyContent: "space-between",
+        display: "grid",
+        gridTemplateColumns: "1fr auto 1fr",
         alignItems: "center",
         marginBottom: 32,
         padding: "0 4px",
@@ -75,7 +75,7 @@ export default function DriverComparison({ data, teamColors, driver1Team, driver
           VS
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "flex-end" }}>
           <div style={{ textAlign: "right" }}>
             <div style={{
               fontFamily: "'Orbitron', sans-serif",

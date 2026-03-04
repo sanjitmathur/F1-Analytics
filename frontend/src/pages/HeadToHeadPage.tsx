@@ -125,9 +125,9 @@ export default function HeadToHeadPage() {
               style={{
                 fontSize: 11,
                 padding: "5px 12px",
-                borderColor: selectedTeam === team ? (teamColors[team] || "var(--border)") : "var(--border)",
+                borderColor: selectedTeam === team ? (teamColors[team] || "var(--border-color)") : "var(--border-color)",
                 background: selectedTeam === team ? `${teamColors[team] || "var(--f1-red)"}22` : undefined,
-                color: selectedTeam === team ? (teamColors[team] || "var(--text)") : undefined,
+                color: selectedTeam === team ? (teamColors[team] || "var(--text-primary)") : undefined,
               }}
               onClick={() => handleTeamFilter(team)}
             >
@@ -157,15 +157,15 @@ export default function HeadToHeadPage() {
                   alignItems: "center",
                   gap: 10,
                   padding: "10px 14px",
-                  background: isSelected ? `${color}18` : "var(--card-bg)",
-                  border: `2px solid ${isSelected ? color : "var(--border)"}`,
+                  background: isSelected ? `${color}18` : "var(--bg-card)",
+                  border: `2px solid ${isSelected ? color : "var(--border-color)"}`,
                   borderRadius: 8,
                   cursor: "pointer",
                   transition: "all 0.2s ease",
                   boxShadow: isSelected ? `0 0 12px ${color}44` : "none",
                   textAlign: "left",
                   width: "100%",
-                  color: "var(--text)",
+                  color: "var(--text-primary)",
                 }}
               >
                 <div style={{
@@ -180,7 +180,7 @@ export default function HeadToHeadPage() {
                     fontFamily: "'Orbitron', sans-serif",
                     fontSize: 12,
                     fontWeight: 700,
-                    color: isSelected ? color : "var(--text)",
+                    color: isSelected ? color : "var(--text-primary)",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
