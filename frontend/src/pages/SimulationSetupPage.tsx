@@ -107,66 +107,117 @@ export default function SimulationSetupPage() {
         </div>
       </div>
 
-      {/* Track + Sim Config */}
-      <div className="grid-2" style={{ marginBottom: 20 }}>
-        <div className="card animate-in">
-          <div className="card-header">Race Configuration</div>
-          <div className="form-group">
-            <label>Simulation Name</label>
-            <input value={simName} onChange={e => setSimName(e.target.value)} placeholder="e.g., Monaco Strategy Test" />
-          </div>
-          <div className="form-group">
-            <label>Circuit</label>
-            <select value={selectedTrackId ?? ""} onChange={e => setSelectedTrackId(Number(e.target.value))}>
-              {tracks.map(t => (
-                <option key={t.id} value={t.id}>{t.name} — {t.country}</option>
+      {/* Sim Name */}
+      <div className="card animate-in" style={{ marginBottom: 20 }}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label>Simulation Name</label>
+          <input value={simName} onChange={e => setSimName(e.target.value)} placeholder="e.g., Monaco Strategy Test" />
+        </div>
+      </div>
+
+      {/* Mode + Weather + Iterations */}
+      <div className="card animate-in" style={{ marginBottom: 20 }}>
+        <div className="grid-2" style={{ marginBottom: simType === "monte_carlo" ? 20 : 0 }}>
+          <div>
+            <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--text-muted)", marginBottom: 8 }}>Mode</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {([["single", "Single Race"], ["monte_carlo", "Monte Carlo"]] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  className={simType === val ? "btn btn-primary" : "btn btn-ghost"}
+                  style={{ flex: 1, padding: "10px 16px", fontSize: 12 }}
+                  onClick={() => setSimType(val)}
+                >
+                  {label}
+                </button>
               ))}
-            </select>
-          </div>
-          <div className="grid-2">
-            <div className="form-group">
-              <label>Mode</label>
-              <select value={simType} onChange={e => setSimType(e.target.value as "single" | "monte_carlo")}>
-                <option value="single">Single Race</option>
-                <option value="monte_carlo">Monte Carlo</option>
-              </select>
             </div>
-            {simType === "monte_carlo" && (
-              <div className="form-group">
-                <label>Iterations</label>
-                <input type="number" min={10} max={10000} value={numSims} onChange={e => setNumSims(Number(e.target.value))} />
-              </div>
-            )}
           </div>
-          <div className="form-group">
-            <label>Weather Conditions</label>
-            <select value={weather} onChange={e => setWeather(e.target.value)}>
-              <option value="dry">Dry</option>
-              <option value="wet">Wet</option>
-              <option value="mixed">Mixed</option>
-            </select>
+          <div>
+            <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--text-muted)", marginBottom: 8 }}>Weather</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {([["dry", "Dry"], ["wet", "Wet"], ["mixed", "Mixed"]] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  className={weather === val ? "btn btn-primary" : "btn btn-ghost"}
+                  style={{ flex: 1, padding: "10px 16px", fontSize: 12 }}
+                  onClick={() => setWeather(val)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+        {simType === "monte_carlo" && (
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label>Iterations</label>
+            <input type="number" min={10} max={10000} value={numSims} onChange={e => setNumSims(Number(e.target.value))} />
+          </div>
+        )}
+      </div>
 
-        {/* Track stats preview */}
-        {selectedTrack && (
-          <div className="card animate-in">
-            <div className="card-header">{selectedTrack.name}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              {[
-                { label: "Laps", value: selectedTrack.total_laps },
-                { label: "Base Lap", value: `${selectedTrack.base_lap_time}s` },
-                { label: "Pit Loss", value: `${selectedTrack.pit_loss_time}s` },
-                { label: "DRS Zones", value: selectedTrack.drs_zones },
-                { label: "Overtake", value: `${selectedTrack.overtake_difficulty}x` },
-                { label: "SC Chance", value: `${(selectedTrack.safety_car_probability * 100).toFixed(0)}%` },
-              ].map(item => (
-                <div key={item.label}>
-                  <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 20, fontWeight: 800 }}>{item.value}</div>
-                  <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1.5, marginTop: 2 }}>{item.label}</div>
+      {/* Circuit Picker */}
+      <div className="card animate-in" style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 1.5, color: "var(--text-muted)", marginBottom: 12 }}>Circuit</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8, marginBottom: selectedTrack ? 20 : 0 }}>
+          {tracks.map(t => {
+            const active = selectedTrackId === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setSelectedTrackId(t.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 14px",
+                  background: active ? "rgba(225, 6, 0, 0.1)" : "var(--bg-glass)",
+                  border: `2px solid ${active ? "var(--f1-red)" : "var(--border-color)"}`,
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  textAlign: "left",
+                  width: "100%",
+                  color: "var(--text-primary)",
+                  transition: "all 0.2s ease",
+                  boxShadow: active ? "0 0 12px rgba(225, 6, 0, 0.25)" : "none",
+                }}
+              >
+                <div style={{
+                  width: 4, height: 28, borderRadius: 2, flexShrink: 0,
+                  background: active ? "var(--f1-red)" : "var(--border-color)",
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontFamily: "'Orbitron', sans-serif", fontSize: 11, fontWeight: 700,
+                    color: active ? "var(--f1-red)" : "var(--text-primary)",
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  }}>
+                    {t.name}
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)" }}>{t.country}</div>
                 </div>
-              ))}
-            </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Track stats */}
+        {selectedTrack && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 16, padding: "16px 0 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            {[
+              { label: "Laps", value: selectedTrack.total_laps },
+              { label: "Base Lap", value: `${selectedTrack.base_lap_time}s` },
+              { label: "Pit Loss", value: `${selectedTrack.pit_loss_time}s` },
+              { label: "DRS Zones", value: selectedTrack.drs_zones },
+              { label: "Overtake", value: `${selectedTrack.overtake_difficulty}x` },
+              { label: "SC Chance", value: `${(selectedTrack.safety_car_probability * 100).toFixed(0)}%` },
+            ].map(item => (
+              <div key={item.label} style={{ textAlign: "center" }}>
+                <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 16, fontWeight: 800 }}>{item.value}</div>
+                <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1.5, marginTop: 2 }}>{item.label}</div>
+              </div>
+            ))}
           </div>
         )}
       </div>

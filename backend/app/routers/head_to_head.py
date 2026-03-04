@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..constants import DRIVERS_2026, POINTS_SYSTEM
+from ..constants import DRIVERS_2026, HISTORICAL_STATS, POINTS_SYSTEM
 from ..database import get_db
 from ..models import ChampionshipStanding, PredictionResult, RacePrediction, RaceWeekend, Season
 from ..schemas import HeadToHeadOut
@@ -19,13 +19,45 @@ async def get_head_to_head(
     driver1: str = Query(...),
     driver2: str = Query(...),
     track: str | None = Query(None),
+    year: int = Query(2026),
     db: AsyncSession = Depends(get_db),
 ):
-    """Compare two drivers, optionally at a specific track."""
+    """Compare two drivers, optionally at a specific track and year."""
+    # For years 2020-2025, use real historical F1 data
+    if 2020 <= year <= 2025:
+        d1_stats = HISTORICAL_STATS.get((year, driver1), {})
+        d2_stats = HISTORICAL_STATS.get((year, driver2), {})
+        return HeadToHeadOut(
+            driver1=driver1,
+            driver2=driver2,
+            track=track,
+            driver1_avg_pos=d1_stats.get("avg_pos", 0),
+            driver2_avg_pos=d2_stats.get("avg_pos", 0),
+            driver1_wins=d1_stats.get("wins", 0),
+            driver2_wins=d2_stats.get("wins", 0),
+            driver1_podiums=d1_stats.get("podiums", 0),
+            driver2_podiums=d2_stats.get("podiums", 0),
+            driver1_points=d1_stats.get("points", 0),
+            driver2_points=d2_stats.get("points", 0),
+        )
+
     d1_info = next((d for d in DRIVERS_2026 if d["name"] == driver1), None)
     d2_info = next((d for d in DRIVERS_2026 if d["name"] == driver2), None)
     if not d1_info or not d2_info:
-        raise HTTPException(404, "Driver not found in 2026 grid")
+        # Driver not on 2026 grid — return zeros instead of error
+        return HeadToHeadOut(
+            driver1=driver1,
+            driver2=driver2,
+            track=track,
+            driver1_avg_pos=0,
+            driver2_avg_pos=0,
+            driver1_wins=0,
+            driver2_wins=0,
+            driver1_podiums=0,
+            driver2_podiums=0,
+            driver1_points=0,
+            driver2_points=0,
+        )
 
     # Get all race predictions
     query = select(RacePrediction).where(

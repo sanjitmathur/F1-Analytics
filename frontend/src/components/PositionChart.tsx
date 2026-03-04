@@ -85,6 +85,9 @@ export default function PositionChart({ laps }: Props) {
           labelStyle={{ color: "rgba(255,255,255,0.5)", fontSize: 10, fontFamily: "'Orbitron', sans-serif", letterSpacing: 1, textTransform: "uppercase" as const, marginBottom: 4 }}
           itemStyle={{ color: "rgba(255,255,255,0.85)", fontSize: 12, fontFamily: "Inter, sans-serif", padding: "1px 0" }}
           cursor={{ stroke: "rgba(225,6,0,0.3)", strokeWidth: 1 }}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          formatter={(value: any, name: any) => [`P${value}`, name] as any}
+          itemSorter={(a) => (a.value as number)}
         />
         {drivers.map((driver) => (
           <Line

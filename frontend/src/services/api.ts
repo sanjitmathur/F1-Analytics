@@ -186,9 +186,10 @@ export async function getRaceWeekendPredictions(rwId: number): Promise<RacePredi
 
 // --- Head to Head ---
 
-export async function getHeadToHead(d1: string, d2: string, track?: string): Promise<HeadToHeadResult> {
-  const params: Record<string, string> = { driver1: d1, driver2: d2 };
+export async function getHeadToHead(d1: string, d2: string, track?: string, year?: number): Promise<HeadToHeadResult> {
+  const params: Record<string, string | number> = { driver1: d1, driver2: d2 };
   if (track) params.track = track;
+  if (year !== undefined) params.year = year;
   const { data } = await client.get<HeadToHeadResult>("/head-to-head", { params });
   return data;
 }

@@ -9,6 +9,7 @@ import {
 import type { SimulationRun, MonteCarloResult, TeamColors } from "../types";
 import MonteCarloDistribution from "../components/MonteCarloDistribution";
 import PositionHistogram from "../components/PositionHistogram";
+import CircuitMap from "../components/CircuitMap";
 
 export default function MonteCarloResultsPage() {
   const { id } = useParams<{ id: string }>();
@@ -68,44 +69,149 @@ export default function MonteCarloResultsPage() {
   }
 
   const topDriver = mcResult.drivers[0];
+  const topColor = topDriver ? (teamColors[topDriver.team] || "var(--f1-red)") : "var(--f1-red)";
 
   return (
     <div>
-      <div className="page-header animate-in">
-        <div>
-          <div className="section-label">Monte Carlo Analysis</div>
-          <h1>{sim.name || sim.track_name}</h1>
-          <div className="subtitle">{mcResult.num_simulations.toLocaleString()} simulations completed</div>
-        </div>
-        <Link to="/dashboard" className="btn btn-secondary btn-sm">Back</Link>
-      </div>
-
-      {/* Top prediction spotlight */}
-      {topDriver && (
-        <div className="card animate-in" style={{
-          background: "linear-gradient(135deg, rgba(225,6,0,0.06), var(--bg-glass))",
-          borderColor: "rgba(225,6,0,0.12)",
-          display: "flex", alignItems: "center", gap: 40, padding: "32px 36px",
+      {/* ═══ HERO SECTION ═══ */}
+      <div style={{
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: "var(--radius-lg)",
+        background: `linear-gradient(135deg, ${topColor}0A 0%, var(--bg-card) 40%, ${topColor}06 100%)`,
+        border: `1px solid ${topColor}20`,
+        marginBottom: 20,
+        padding: "40px 36px",
+        minHeight: 280,
+      }}>
+        {/* Circuit map background */}
+        <div style={{
+          position: "absolute",
+          right: 40,
+          top: "50%",
+          transform: "translateY(-50%)",
+          pointerEvents: "none",
+          zIndex: 0,
         }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 3, marginBottom: 8 }}>Predicted Winner</div>
-            <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 28, fontWeight: 900 }}>{topDriver.driver_name}</div>
-            <div style={{ color: teamColors[topDriver.team] || "var(--text-secondary)", fontSize: 13, fontWeight: 600, marginTop: 2 }}>{topDriver.team}</div>
-          </div>
-          <div style={{ display: "flex", gap: 32 }}>
-            {[
-              { label: "Win %", value: topDriver.win_pct.toFixed(1), color: "var(--f1-red)" },
-              { label: "Podium %", value: topDriver.podium_pct.toFixed(1), color: "var(--accent-yellow)" },
-              { label: "Avg Pos", value: topDriver.avg_position.toFixed(1), color: "var(--accent-blue)" },
-            ].map(s => (
-              <div key={s.label} style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 24, fontWeight: 900, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
+          <CircuitMap trackName={sim.track_name || ""} color={topColor} opacity={0.18} size={300} />
         </div>
-      )}
+
+        {/* Ambient glow */}
+        <div style={{
+          position: "absolute",
+          top: -100,
+          right: -50,
+          width: 500,
+          height: 500,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${topColor}18 0%, ${topColor}08 30%, transparent 70%)`,
+          pointerEvents: "none",
+          zIndex: 0,
+        }} />
+        <div style={{
+          position: "absolute",
+          bottom: -80,
+          left: -80,
+          width: 300,
+          height: 300,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, ${topColor}0C 0%, transparent 70%)`,
+          pointerEvents: "none",
+          zIndex: 0,
+        }} />
+
+        {/* Content */}
+        <div style={{ position: "relative", zIndex: 1 }}>
+          {/* Top bar */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+            <div>
+              <div style={{
+                fontSize: 10,
+                textTransform: "uppercase",
+                letterSpacing: 3,
+                color: topColor,
+                fontWeight: 700,
+                marginBottom: 4,
+              }}>
+                {sim.track_name} — Monte Carlo
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                {mcResult.num_simulations.toLocaleString()} simulations
+              </div>
+            </div>
+            <Link to="/dashboard" className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}>Back</Link>
+          </div>
+
+          {/* Predicted winner */}
+          {topDriver && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{
+                fontSize: 10,
+                textTransform: "uppercase",
+                letterSpacing: 3,
+                color: "var(--text-muted)",
+                marginBottom: 8,
+              }}>
+                Predicted Winner
+              </div>
+              <div style={{
+                fontFamily: "'Orbitron', sans-serif",
+                fontSize: 42,
+                fontWeight: 900,
+                lineHeight: 1,
+                letterSpacing: -1,
+                marginBottom: 6,
+              }}>
+                {topDriver.driver_name}
+              </div>
+              <div style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: topColor,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}>
+                <span style={{ width: 4, height: 16, borderRadius: 2, background: topColor, display: "inline-block" }} />
+                {topDriver.team}
+              </div>
+            </div>
+          )}
+
+          {/* Stats row */}
+          {topDriver && (
+            <div style={{ display: "flex", gap: 40 }}>
+              {[
+                { label: "Win %", value: `${topDriver.win_pct.toFixed(1)}%`, accent: true },
+                { label: "Podium %", value: `${topDriver.podium_pct.toFixed(1)}%` },
+                { label: "Avg Pos", value: topDriver.avg_position.toFixed(1) },
+                { label: "Top 5 %", value: `${topDriver.top5_pct.toFixed(1)}%` },
+                { label: "DNF %", value: `${topDriver.dnf_pct.toFixed(1)}%` },
+              ].map(s => (
+                <div key={s.label}>
+                  <div style={{
+                    fontFamily: "'Orbitron', sans-serif",
+                    fontSize: 18,
+                    fontWeight: 800,
+                    color: s.accent ? topColor : undefined,
+                  }}>
+                    {s.value}
+                  </div>
+                  <div style={{
+                    fontSize: 9,
+                    color: "var(--text-muted)",
+                    textTransform: "uppercase",
+                    letterSpacing: 1.5,
+                    marginTop: 2,
+                  }}>
+                    {s.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Charts */}
       <div className="card animate-in">
