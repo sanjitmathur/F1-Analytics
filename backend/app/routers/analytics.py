@@ -19,6 +19,51 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 
+# NOTE: compare/multi must come BEFORE /{pit_stop_id} routes,
+# otherwise FastAPI tries to parse "compare" as an int and fails.
+@router.get("/compare/multi", response_model=PitStopComparisonOut)
+async def compare_pit_stops(
+    ids: str = Query(..., description="Comma-separated pit stop IDs"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Compare analytics across multiple pit stops, ranked by efficiency."""
+    try:
+        pit_stop_ids = [int(x.strip()) for x in ids.split(",")]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid IDs format. Use comma-separated integers.")
+
+    items = []
+    for pid in pit_stop_ids:
+        # Get pit stop info
+        ps_result = await db.execute(select(PitStop).where(PitStop.id == pid))
+        ps = ps_result.scalar_one_or_none()
+        if not ps:
+            continue
+
+        # Get analytics (any model)
+        a_result = await db.execute(
+            select(PitStopAnalytics).where(PitStopAnalytics.pit_stop_id == pid)
+        )
+        analytics = a_result.scalar_one_or_none()
+
+        items.append(PitStopComparisonItem(
+            pit_stop_id=pid,
+            original_filename=ps.original_filename,
+            total_stop_duration_sec=analytics.total_stop_duration_sec if analytics else None,
+            stationary_duration_sec=analytics.stationary_duration_sec if analytics else None,
+            efficiency_score=analytics.efficiency_score if analytics else None,
+            max_crew_count=analytics.max_crew_count if analytics else None,
+            model_name=analytics.model_name if analytics else "default",
+        ))
+
+    # Rank by efficiency score (highest first), None values last
+    items.sort(key=lambda x: (x.efficiency_score is None, -(x.efficiency_score or 0)))
+    for i, item in enumerate(items):
+        item.rank = i + 1
+
+    return PitStopComparisonOut(items=items, count=len(items))
+
+
 @router.post("/{pit_stop_id}/analyze", response_model=PitStopAnalyticsOut)
 async def run_analysis(
     pit_stop_id: int,
@@ -62,49 +107,6 @@ async def get_analytics(
     if not analytics:
         raise HTTPException(status_code=404, detail="Analytics not found. Run analysis first.")
     return _analytics_to_response(analytics)
-
-
-@router.get("/compare/multi", response_model=PitStopComparisonOut)
-async def compare_pit_stops(
-    ids: str = Query(..., description="Comma-separated pit stop IDs"),
-    db: AsyncSession = Depends(get_db),
-):
-    """Compare analytics across multiple pit stops, ranked by efficiency."""
-    try:
-        pit_stop_ids = [int(x.strip()) for x in ids.split(",")]
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid IDs format. Use comma-separated integers.")
-
-    items = []
-    for pid in pit_stop_ids:
-        # Get pit stop info
-        ps_result = await db.execute(select(PitStop).where(PitStop.id == pid))
-        ps = ps_result.scalar_one_or_none()
-        if not ps:
-            continue
-
-        # Get analytics (any model)
-        a_result = await db.execute(
-            select(PitStopAnalytics).where(PitStopAnalytics.pit_stop_id == pid)
-        )
-        analytics = a_result.scalar_one_or_none()
-
-        items.append(PitStopComparisonItem(
-            pit_stop_id=pid,
-            original_filename=ps.original_filename,
-            total_stop_duration_sec=analytics.total_stop_duration_sec if analytics else None,
-            stationary_duration_sec=analytics.stationary_duration_sec if analytics else None,
-            efficiency_score=analytics.efficiency_score if analytics else None,
-            max_crew_count=analytics.max_crew_count if analytics else None,
-            model_name=analytics.model_name if analytics else "default",
-        ))
-
-    # Rank by efficiency score (highest first), None values last
-    items.sort(key=lambda x: (x.efficiency_score is None, -(x.efficiency_score or 0)))
-    for i, item in enumerate(items):
-        item.rank = i + 1
-
-    return PitStopComparisonOut(items=items, count=len(items))
 
 
 def _analytics_to_response(analytics: PitStopAnalytics) -> PitStopAnalyticsOut:
