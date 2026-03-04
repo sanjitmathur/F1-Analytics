@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import CircuitMap from "../components/CircuitMap";
 
@@ -89,6 +89,134 @@ function ParticleField() {
   }, []);
 
   return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0 }} />;
+}
+
+/* ─── Cursor particle trail ─── */
+function CursorTrail() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouse = useRef({ x: -100, y: -100 });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d")!;
+    const dpr = window.devicePixelRatio || 1;
+    let animId: number;
+
+    const resize = () => {
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    interface Trail { x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number; color: string; }
+    const trails: Trail[] = [];
+    const colors = ["#e10600", "#ff4444", "#448aff", "#ffffff"];
+    let lastSpawn = 0;
+
+    const onMove = (e: globalThis.MouseEvent) => {
+      mouse.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+
+    const draw = (now: number) => {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      if (now - lastSpawn > 16 && mouse.current.x > 0) {
+        lastSpawn = now;
+        for (let i = 0; i < 2; i++) {
+          trails.push({
+            x: mouse.current.x + (Math.random() - 0.5) * 8,
+            y: mouse.current.y + (Math.random() - 0.5) * 8,
+            vx: (Math.random() - 0.5) * 1.5,
+            vy: (Math.random() - 0.5) * 1.5 - 0.5,
+            life: 1,
+            maxLife: 40 + Math.random() * 30,
+            size: 1.5 + Math.random() * 2.5,
+            color: colors[Math.floor(Math.random() * colors.length)],
+          });
+        }
+      }
+
+      for (let i = trails.length - 1; i >= 0; i--) {
+        const t = trails[i];
+        t.x += t.vx;
+        t.y += t.vy;
+        t.life++;
+        const progress = t.life / t.maxLife;
+        if (progress >= 1) { trails.splice(i, 1); continue; }
+        const alpha = 1 - progress;
+        const s = t.size * (1 - progress * 0.5);
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, s, 0, Math.PI * 2);
+        ctx.fillStyle = t.color;
+        ctx.globalAlpha = alpha * 0.6;
+        ctx.fill();
+        // glow
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, s * 3, 0, Math.PI * 2);
+        ctx.fillStyle = t.color;
+        ctx.globalAlpha = alpha * 0.1;
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      animId = requestAnimationFrame(draw);
+    };
+    animId = requestAnimationFrame(draw);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", onMove);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 1, pointerEvents: "none" }} />;
+}
+
+/* ─── 3D Tilt Card wrapper ─── */
+function TiltCard({ children, className, style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleMove = (e: ReactMouseEvent<HTMLDivElement>) => {
+    const el = cardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    el.style.transform = `perspective(800px) rotateY(${x * 12}deg) rotateX(${-y * 12}deg) scale(1.03)`;
+    // shine effect
+    const shine = el.querySelector(".tilt-shine") as HTMLElement;
+    if (shine) {
+      shine.style.background = `radial-gradient(circle at ${(x + 0.5) * 100}% ${(y + 0.5) * 100}%, rgba(255,255,255,0.08), transparent 60%)`;
+    }
+  };
+
+  const handleLeave = () => {
+    const el = cardRef.current;
+    if (!el) return;
+    el.style.transform = "perspective(800px) rotateY(0deg) rotateX(0deg) scale(1)";
+    const shine = el.querySelector(".tilt-shine") as HTMLElement;
+    if (shine) shine.style.background = "transparent";
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      className={className}
+      style={{ ...style, transition: "transform 0.2s ease-out", transformStyle: "preserve-3d" }}
+      onMouseMove={handleMove}
+      onMouseLeave={handleLeave}
+    >
+      <div className="tilt-shine" style={{ position: "absolute", inset: 0, borderRadius: "inherit", pointerEvents: "none", zIndex: 2 }} />
+      {children}
+    </div>
+  );
 }
 
 /* ─── Animated racing line SVG ─── */
@@ -391,7 +519,7 @@ function useReveal(threshold = 0.15) {
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
+      ([entry]) => { setVisible(entry.isIntersecting); },
       { threshold, rootMargin: "0px 0px -40px 0px" }
     );
     obs.observe(el);
@@ -405,25 +533,29 @@ function useReveal(threshold = 0.15) {
 function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
   const [count, setCount] = useState(0);
   const ref = useRef<HTMLSpanElement>(null);
-  const started = useRef(false);
+  const animating = useRef(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !started.current) {
-        started.current = true;
+      if (entry.isIntersecting && !animating.current) {
+        animating.current = true;
+        setCount(0);
         const duration = 1800;
         const startTime = performance.now();
         const animate = (now: number) => {
           const elapsed = now - startTime;
           const p = Math.min(elapsed / duration, 1);
-          // ease-out cubic
           const eased = 1 - Math.pow(1 - p, 3);
           setCount(Math.round(eased * target));
           if (p < 1) requestAnimationFrame(animate);
+          else animating.current = false;
         };
         requestAnimationFrame(animate);
+      } else if (!entry.isIntersecting) {
+        animating.current = false;
+        setCount(0);
       }
     }, { threshold: 0.5 });
     obs.observe(el);
@@ -431,6 +563,74 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
   }, [target]);
 
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
+}
+
+/* ─── F1 Sound Effects (Web Audio API) ─── */
+function useF1Sounds() {
+  const ctxRef = useRef<AudioContext | null>(null);
+
+  const getCtx = () => {
+    if (!ctxRef.current) ctxRef.current = new AudioContext();
+    return ctxRef.current;
+  };
+
+  const playBeep = useCallback((freq = 800, duration = 0.15) => {
+    try {
+      const ctx = getCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    } catch { /* audio not available */ }
+  }, []);
+
+  const playLightsOut = useCallback(() => {
+    try {
+      const ctx = getCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(400, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch { /* audio not available */ }
+  }, []);
+
+  const playEngineRev = useCallback(() => {
+    try {
+      const ctx = getCtx();
+      const osc = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc2.type = "square";
+      osc.frequency.setValueAtTime(80, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.8);
+      osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 1.2);
+      osc2.frequency.setValueAtTime(60, ctx.currentTime);
+      osc2.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.8);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime + 0.4);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+      osc.connect(gain).connect(ctx.destination);
+      osc2.connect(gain);
+      osc.start();
+      osc2.start();
+      osc.stop(ctx.currentTime + 1.5);
+      osc2.stop(ctx.currentTime + 1.5);
+    } catch { /* audio not available */ }
+  }, []);
+
+  return { playBeep, playLightsOut, playEngineRev };
 }
 
 /* ═══════════════════════════════════════════
@@ -442,6 +642,7 @@ export default function LandingPage() {
   const [lightPhase, setLightPhase] = useState(0);
   const [launching, setLaunching] = useState(false);
   const [warpActive, setWarpActive] = useState(false);
+  const { playBeep, playLightsOut, playEngineRev } = useF1Sounds();
 
   useEffect(() => {
     requestAnimationFrame(() => setMounted(true));
@@ -454,11 +655,16 @@ export default function LandingPage() {
     let time = 0;
     for (let i = 1; i <= 6; i++) {
       time += delays[i - 1];
-      setTimeout(() => setLightPhase(i), time);
+      const phase = i;
+      setTimeout(() => {
+        setLightPhase(phase);
+        if (phase < 6) playBeep(800 + phase * 50, 0.18);
+        else { playLightsOut(); playEngineRev(); }
+      }, time);
     }
     setTimeout(() => setWarpActive(true), time + 200);
     setTimeout(() => navigate("/season/2026"), time + 900);
-  }, [launching, navigate]);
+  }, [launching, navigate, playBeep, playLightsOut, playEngineRev]);
 
   /* Section reveals */
   const features = useReveal(0.1);
@@ -473,6 +679,7 @@ export default function LandingPage() {
   return (
     <div className={`landing-page ${mounted ? "mounted" : ""} ${launching ? "launching" : ""}`}>
       <ParticleField />
+      <CursorTrail />
       <RacingLine />
 
       <div className="landing-orb landing-orb-1" style={{ transform: `translate(0, ${parallaxY * 0.5}px)` }} />
@@ -572,13 +779,13 @@ export default function LandingPage() {
                 { icon: "purple", svg: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></>, title: "Pit Strategy", desc: "Configure multi-stop strategies per driver. The engine evaluates 20-25s pit losses, tire resets, and optimal undercut timing." },
                 { icon: "red", svg: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />, title: "2026 Season", desc: "Full 24-race calendar with AI predictions for every Grand Prix, championship standings, and head-to-head driver comparisons." },
               ].map((feat, i) => (
-                <div key={feat.title} className={`ls-feature-card scroll-stagger ${features.visible ? "stagger-in" : ""}`} style={{ transitionDelay: `${i * 0.1}s` }}>
+                <TiltCard key={feat.title} className={`ls-feature-card scroll-stagger ${features.visible ? "stagger-in" : ""}`} style={{ transitionDelay: `${i * 0.1}s` }}>
                   <div className={`ls-feature-icon ls-icon-${feat.icon}`}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{feat.svg}</svg>
                   </div>
                   <h3>{feat.title}</h3>
                   <p>{feat.desc}</p>
-                </div>
+                </TiltCard>
               ))}
             </div>
           </div>
@@ -597,7 +804,7 @@ export default function LandingPage() {
             </p>
 
             <div className="ls-vboxes">
-              <div className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0s" }}>
+              <TiltCard className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0s" }}>
                 <div className="ls-vbox-top">
                   <span className="ls-vbox-num">01</span>
                   <div className="ls-vbox-icon ls-icon-red">
@@ -613,9 +820,9 @@ export default function LandingPage() {
                 <div className="ls-vbox-visual">
                   <CircuitMap trackName="Monaco" color="#e10600" opacity={0.12} size={160} />
                 </div>
-              </div>
+              </TiltCard>
 
-              <div className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0.15s" }}>
+              <TiltCard className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0.15s" }}>
                 <div className="ls-vbox-top">
                   <span className="ls-vbox-num">02</span>
                   <div className="ls-vbox-icon ls-icon-blue">
@@ -633,9 +840,9 @@ export default function LandingPage() {
                     ))}
                   </div>
                 </div>
-              </div>
+              </TiltCard>
 
-              <div className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0.3s" }}>
+              <TiltCard className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0.3s" }}>
                 <div className="ls-vbox-top">
                   <span className="ls-vbox-num">03</span>
                   <div className="ls-vbox-icon ls-icon-green">
@@ -654,7 +861,7 @@ export default function LandingPage() {
                     <path d="M0 55 Q30 58, 50 60 T100 55 T150 50 T200 48" stroke="#ffd600" strokeWidth="1" fill="none" opacity="0.3" />
                   </svg>
                 </div>
-              </div>
+              </TiltCard>
             </div>
           </div>
         </section>

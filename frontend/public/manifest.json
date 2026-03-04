@@ -1,0 +1,19 @@
+{
+  "name": "F1 AI Race Strategy Simulator",
+  "short_name": "F1 Simulator",
+  "description": "AI-powered Formula 1 race prediction with lap-by-lap simulation, tire strategy, and Monte Carlo probability predictions",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020203",
+  "theme_color": "#e10600",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/f1-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "entertainment"]
+}

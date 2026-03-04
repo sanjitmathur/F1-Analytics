@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   listTracks,
@@ -24,6 +24,13 @@ export default function SimulationSetupPage() {
   const [numSims, setNumSims] = useState(500);
   const [weather, setWeather] = useState("dry");
   const [submitting, setSubmitting] = useState(false);
+  const [showCreator, setShowCreator] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customTeam, setCustomTeam] = useState("");
+  const [customPace, setCustomPace] = useState(7.5);
+  const [customRacecraft, setCustomRacecraft] = useState(7);
+  const [customConsistency, setCustomConsistency] = useState(7);
+  const creatorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     Promise.all([listTracks(), getPresetDrivers(), getTeamColors()]).then(
@@ -53,10 +60,27 @@ export default function SimulationSetupPage() {
   };
 
   const addDriver = () => {
+    setCustomName("");
+    setCustomTeam("");
+    setCustomPace(7.5);
+    setCustomRacecraft(7);
+    setCustomConsistency(7);
+    setShowCreator(true);
+  };
+
+  const confirmCustomDriver = () => {
+    const skill = Math.round(((customPace + customRacecraft + customConsistency) / 3) * 10) / 10;
+    const totalLaps = selectedTrack?.total_laps || 50;
     setDrivers([...drivers, {
-      name: "New Driver", team: "Team", skill: 0, grid_position: drivers.length + 1,
-      starting_compound: "MEDIUM", pit_stops: [], dnf_chance_per_lap: 0.001,
+      name: customName || "Custom Driver",
+      team: customTeam || "Independent",
+      skill,
+      grid_position: drivers.length + 1,
+      starting_compound: "MEDIUM",
+      pit_stops: [{ lap: Math.round(totalLaps * 0.5), compound: "HARD" }],
+      dnf_chance_per_lap: 0.001,
     }]);
+    setShowCreator(false);
   };
 
   const updateDriver = (index: number, updates: Partial<DriverConfig>) => {
@@ -309,6 +333,74 @@ export default function SimulationSetupPage() {
           )}
         </button>
       </div>
+      {/* ═══ CUSTOM DRIVER CREATOR MODAL ═══ */}
+      {showCreator && (
+        <div
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
+            backdropFilter: "blur(10px)", zIndex: 500,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowCreator(false); }}
+        >
+          <div ref={creatorRef} style={{
+            background: "rgba(10,10,15,0.95)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 20, padding: 36, width: 420, maxWidth: "90vw",
+            animation: "fadeInUp 0.3s ease",
+          }}>
+            <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 14, fontWeight: 800, color: "var(--f1-red)", letterSpacing: 2, marginBottom: 24 }}>
+              CREATE DRIVER
+            </div>
+
+            <div className="form-group">
+              <label>Driver Name</label>
+              <input value={customName} onChange={(e) => setCustomName(e.target.value)} placeholder="Enter driver name" />
+            </div>
+
+            <div className="form-group">
+              <label>Team</label>
+              <input value={customTeam} onChange={(e) => setCustomTeam(e.target.value)} placeholder="Enter team name" />
+            </div>
+
+            <div className="form-group">
+              <label>Pace — {customPace.toFixed(1)}</label>
+              <input type="range" min="1" max="10" step="0.1" value={customPace} onChange={(e) => setCustomPace(parseFloat(e.target.value))}
+                style={{ width: "100%", accentColor: "var(--f1-red)" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-muted)", marginTop: 2 }}>
+                <span>Slow</span><span>Fast</span>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Racecraft — {customRacecraft.toFixed(1)}</label>
+              <input type="range" min="1" max="10" step="0.1" value={customRacecraft} onChange={(e) => setCustomRacecraft(parseFloat(e.target.value))}
+                style={{ width: "100%", accentColor: "#448aff" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-muted)", marginTop: 2 }}>
+                <span>Rookie</span><span>Expert</span>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Consistency — {customConsistency.toFixed(1)}</label>
+              <input type="range" min="1" max="10" step="0.1" value={customConsistency} onChange={(e) => setCustomConsistency(parseFloat(e.target.value))}
+                style={{ width: "100%", accentColor: "#00e676" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "var(--text-muted)", marginTop: 2 }}>
+                <span>Erratic</span><span>Consistent</span>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 11, color: "var(--text-muted)" }}>
+                Skill: <span style={{ color: "var(--text-primary)", fontWeight: 800 }}>{(((customPace + customRacecraft + customConsistency) / 3)).toFixed(1)}</span> / 10
+              </span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => setShowCreator(false)}>Cancel</button>
+                <button className="btn btn-primary btn-sm" onClick={confirmCustomDriver}>Add to Grid</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

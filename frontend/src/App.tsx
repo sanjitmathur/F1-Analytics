@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
 import SimulationSetupPage from "./pages/SimulationSetupPage";
@@ -13,6 +13,7 @@ import RacePredictionPage from "./pages/RacePredictionPage";
 import HeadToHeadPage from "./pages/HeadToHeadPage";
 import ChampionshipPage from "./pages/ChampionshipPage";
 import WeatherAnalysisPage from "./pages/WeatherAnalysisPage";
+import ThemePicker from "./components/ThemePicker";
 import "./Landing.css";
 import "./App.css";
 
@@ -52,6 +53,34 @@ function LandingKeyHandler() {
   return null;
 }
 
+/* Page transition wrapper */
+function PageTransition({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const [displayLocation, setDisplayLocation] = useState(location);
+  const [transitionStage, setTransitionStage] = useState("enter");
+  const prevPath = useRef(location.pathname);
+
+  useEffect(() => {
+    if (location.pathname !== prevPath.current) {
+      prevPath.current = location.pathname;
+      setTransitionStage("exit");
+      const timer = setTimeout(() => {
+        setDisplayLocation(location);
+        setTransitionStage("enter");
+      }, 250);
+      return () => clearTimeout(timer);
+    }
+  }, [location]);
+
+  return (
+    <div className={`page-transition page-transition-${transitionStage}`}>
+      <Routes location={displayLocation}>
+        {children as any}
+      </Routes>
+    </div>
+  );
+}
+
 function AppContent() {
   const location = useLocation();
   const isLanding = location.pathname === "/";
@@ -75,10 +104,11 @@ function AppContent() {
               <NavLink to="/simulate">Simulate</NavLink>
               <NavLink to="/tracks">Circuits</NavLink>
               <NavLink to="/compare">Compare</NavLink>
+              <ThemePicker />
             </div>
           </nav>
           <main className="container">
-            <Routes>
+            <PageTransition>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/simulate" element={<SimulationSetupPage />} />
               <Route path="/results/:id" element={<SimulationResultsPage />} />
@@ -91,7 +121,7 @@ function AppContent() {
               <Route path="/head-to-head" element={<HeadToHeadPage />} />
               <Route path="/championship/2026" element={<ChampionshipPage />} />
               <Route path="/weather-analysis" element={<WeatherAnalysisPage />} />
-            </Routes>
+            </PageTransition>
           </main>
         </div>
       )}

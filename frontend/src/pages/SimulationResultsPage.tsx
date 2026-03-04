@@ -12,6 +12,7 @@ import PositionChart from "../components/PositionChart";
 import LapTimeChart from "../components/LapTimeChart";
 import StrategyTimeline from "../components/StrategyTimeline";
 import CircuitMap from "../components/CircuitMap";
+import RaceReplay from "../components/RaceReplay";
 
 export default function SimulationResultsPage() {
   const { id } = useParams<{ id: string }>();
@@ -355,6 +356,31 @@ export default function SimulationResultsPage() {
         <div className="card-header">Strategy Timeline</div>
         <StrategyTimeline laps={laps} teamColors={teamColors} results={results} />
       </div>
+
+      {/* ═══ RACE REPLAY ═══ */}
+      {laps.length > 0 && (
+        <div className="card animate-in">
+          <div className="card-header">Race Replay</div>
+          <RaceReplay
+            trackName={sim?.track_name || ""}
+            lapData={(() => {
+              const grouped: Record<number, Array<{ driver_name: string; position: number; team_color: string }>> = {};
+              for (const l of laps) {
+                if (!grouped[l.lap]) grouped[l.lap] = [];
+                grouped[l.lap].push({
+                  driver_name: l.driver_name,
+                  position: l.position,
+                  team_color: teamColors[results.find(r => r.driver_name === l.driver_name)?.team || ""] || "#ffffff",
+                });
+              }
+              return Object.entries(grouped)
+                .sort(([a], [b]) => Number(a) - Number(b))
+                .map(([lap, positions]) => ({ lap: Number(lap), positions }));
+            })()}
+            totalLaps={totalLaps}
+          />
+        </div>
+      )}
     </div>
   );
 }
