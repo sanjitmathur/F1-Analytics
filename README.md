@@ -10,7 +10,8 @@ Full-stack F1 race prediction platform with two modes: **2026 Season Predictor**
 - **Weather Effects** — Dry/wet/mixed conditions affecting lap times, tire choice, and SC probability
 - **Monte Carlo Predictions** — Run hundreds of simulations to get win/podium/top-10 probability distributions
 - **Championship Tracker** — Driver and constructor standings updated with predicted points
-- **Head-to-Head Comparison** — Compare any two drivers across tracks
+- **Head-to-Head Comparison** — Compare any two drivers across tracks with real historical data (2020-2025)
+- **Circuit Map Visualizations** — Accurate SVG circuit outlines for 20+ F1 tracks on results pages
 - **Custom Simulation** — Full control over track, drivers, strategies, and weather
 - **Weather Forecasting** — Open-Meteo integration for real race weekend forecasts
 - **Accuracy Tracking** — Import actual results and measure prediction accuracy (MAE, Kendall tau)

@@ -72,7 +72,7 @@ docker compose build && docker compose up
 - `database.py` — Dual engines: async (`aiosqlite`) for API routes, sync for background threads
 - `models.py` — SQLAlchemy ORM: Track, SimulationRun, SimulationResult, LapData, MonteCarloData, ImportedRaceData
 - `schemas.py` — Pydantic request/response schemas
-- `constants.py` — Preset tracks (10 circuits), preset drivers (20), team colors
+- `constants.py` — Preset tracks (10 circuits), preset drivers (20), team colors, HISTORICAL_STATS (real F1 data 2020-2025)
 - `routers/` — API route modules: tracks, simulations, monte_carlo, data_import, presets
 - `services/` — simulation_runner (background thread), fastf1_loader
 - `simulation/` — Pure Python simulation engine (entities, lap_model, overtake_model, pit_strategy, safety_car, race_engine, monte_carlo)
@@ -100,8 +100,8 @@ Key formulas:
 
 ### Frontend Structure (`frontend/src/`)
 - `App.tsx` — React Router setup with 7 page routes
-- `pages/` — DashboardPage, SimulationSetupPage, SimulationResultsPage, MonteCarloResultsPage, TracksPage, DataImportPage, ComparisonPage
-- `components/` — PositionChart, LapTimeChart, StrategyTimeline, MonteCarloDistribution, PositionHistogram
+- `pages/` — DashboardPage, SimulationSetupPage, SimulationResultsPage, MonteCarloResultsPage, TracksPage, DataImportPage, ComparisonPage, HeadToHeadPage, SeasonCalendarPage
+- `components/` — PositionChart, LapTimeChart, StrategyTimeline, MonteCarloDistribution, PositionHistogram, CircuitMap, DriverComparison
 - `services/api.ts` — Axios client with all backend API methods
 - `types/index.ts` — TypeScript interfaces
 
