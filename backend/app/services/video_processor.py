@@ -116,6 +116,14 @@ def _process_video_sync(pit_stop_id: int, video_path: str, sample_rate: int, mod
         # Compute summaries for this model
         _compute_summaries(db, pit_stop_id, effective_model)
 
+        # Run pit stop analytics (non-fatal)
+        try:
+            from .pit_stop_analyzer import analyze_pit_stop
+            analyze_pit_stop(db, pit_stop_id, effective_model)
+            logger.info(f"PitStop {pit_stop_id} analytics complete")
+        except Exception as e:
+            logger.warning(f"Analytics failed for pit stop {pit_stop_id}: {e}")
+
         pit_stop.status = "completed"
         db.commit()
         logger.info(f"PitStop {pit_stop_id} processing complete: {processed} frames analyzed")

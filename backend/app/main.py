@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import init_db
-from .routers import datasets, frames, models, pit_stops, training
+from .routers import analytics, datasets, frames, models, pit_stops, training
 from .schemas import HealthResponse, SystemInfo
 from .services.yolo_detector import detector
 
@@ -49,6 +49,7 @@ app.include_router(frames.router)
 app.include_router(datasets.router)
 app.include_router(training.router)
 app.include_router(models.router)
+app.include_router(analytics.router)
 
 
 @app.get("/api/health", response_model=HealthResponse)

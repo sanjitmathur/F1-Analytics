@@ -15,6 +15,8 @@ import type {
   TrainingProgress,
   ModelInfo,
   SystemInfo,
+  PitStopAnalytics,
+  PitStopComparison,
 } from "../types";
 
 const client = axios.create({ baseURL: "/api" });
@@ -255,6 +257,45 @@ export async function getSummariesByModel(
   const params: Record<string, unknown> = {};
   if (modelName) params.model_name = modelName;
   const { data } = await client.get(`/pit-stops/${pitStopId}/summaries`, { params });
+  return data;
+}
+
+// --- Phase 3: Analytics ---
+
+export async function runAnalysis(
+  pitStopId: number,
+  modelName?: string
+): Promise<PitStopAnalytics> {
+  const params: Record<string, unknown> = {};
+  if (modelName) params.model_name = modelName;
+  const { data } = await client.post<PitStopAnalytics>(
+    `/analytics/${pitStopId}/analyze`,
+    null,
+    { params }
+  );
+  return data;
+}
+
+export async function getAnalytics(
+  pitStopId: number,
+  modelName?: string
+): Promise<PitStopAnalytics> {
+  const params: Record<string, unknown> = {};
+  if (modelName) params.model_name = modelName;
+  const { data } = await client.get<PitStopAnalytics>(
+    `/analytics/${pitStopId}`,
+    { params }
+  );
+  return data;
+}
+
+export async function comparePitStops(
+  ids: number[]
+): Promise<PitStopComparison> {
+  const { data } = await client.get<PitStopComparison>(
+    `/analytics/compare/multi`,
+    { params: { ids: ids.join(",") } }
+  );
   return data;
 }
 

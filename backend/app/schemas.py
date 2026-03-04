@@ -252,6 +252,71 @@ class ReprocessRequest(BaseModel):
     model_name: str
 
 
+# --- Phase 3: Analytics ---
+
+class PhaseOut(BaseModel):
+    name: str
+    start_sec: float
+    end_sec: float
+    duration_sec: float
+    confidence: float = 1.0
+    crew_count_avg: float = 0.0
+    notes: str = ""
+
+
+class PitStopAnalyticsOut(BaseModel):
+    id: int
+    pit_stop_id: int
+
+    # Timing
+    car_first_seen_sec: Optional[float] = None
+    car_last_seen_sec: Optional[float] = None
+    total_stop_duration_sec: Optional[float] = None
+    stationary_start_sec: Optional[float] = None
+    stationary_end_sec: Optional[float] = None
+    stationary_duration_sec: Optional[float] = None
+
+    # Crew
+    max_crew_count: Optional[int] = None
+    avg_crew_count: Optional[float] = None
+    crew_convergence_frame: Optional[int] = None
+
+    # Equipment
+    jack_detected: bool = False
+    wheel_gun_detected: bool = False
+    tire_change_detected: bool = False
+
+    # Scoring
+    efficiency_score: Optional[float] = None
+
+    # Phases
+    phases: list[PhaseOut] = []
+
+    # Meta
+    model_name: str = "default"
+    class_mapping_used: Optional[str] = None
+    analysis_version: str = "1.0"
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PitStopComparisonItem(BaseModel):
+    pit_stop_id: int
+    original_filename: str
+    total_stop_duration_sec: Optional[float] = None
+    stationary_duration_sec: Optional[float] = None
+    efficiency_score: Optional[float] = None
+    max_crew_count: Optional[int] = None
+    model_name: str = "default"
+    rank: int = 0
+
+
+class PitStopComparisonOut(BaseModel):
+    items: list[PitStopComparisonItem]
+    count: int
+
+
 # --- System Info ---
 
 class SystemInfo(BaseModel):

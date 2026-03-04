@@ -124,3 +124,42 @@ class TrainingRun(Base):
     completed_at = Column(DateTime, nullable=True)
 
     dataset = relationship("Dataset", back_populates="training_runs")
+
+
+class PitStopAnalytics(Base):
+    __tablename__ = "pit_stop_analytics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pit_stop_id = Column(Integer, ForeignKey("pit_stops.id", ondelete="CASCADE"), nullable=False)
+
+    # Timing
+    car_first_seen_sec = Column(Float, nullable=True)
+    car_last_seen_sec = Column(Float, nullable=True)
+    total_stop_duration_sec = Column(Float, nullable=True)
+    stationary_start_sec = Column(Float, nullable=True)
+    stationary_end_sec = Column(Float, nullable=True)
+    stationary_duration_sec = Column(Float, nullable=True)
+
+    # Crew
+    max_crew_count = Column(Integer, nullable=True)
+    avg_crew_count = Column(Float, nullable=True)
+    crew_convergence_frame = Column(Integer, nullable=True)
+
+    # Equipment
+    jack_detected = Column(Boolean, default=False)
+    wheel_gun_detected = Column(Boolean, default=False)
+    tire_change_detected = Column(Boolean, default=False)
+
+    # Scoring
+    efficiency_score = Column(Float, nullable=True)
+
+    # Phases (JSON text - list of phase dicts)
+    phases_json = Column(Text, nullable=True)
+
+    # Meta
+    model_name = Column(String, nullable=False, default="default")
+    class_mapping_used = Column(String, nullable=True)
+    analysis_version = Column(String, default="1.0")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    pit_stop = relationship("PitStop")

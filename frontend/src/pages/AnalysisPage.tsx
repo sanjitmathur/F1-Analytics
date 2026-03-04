@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import type { PitStopDetail, Detection } from "../types";
-import { getPitStop, getDetections, getPitStopStatus, reprocessPitStop } from "../services/api";
+import type { PitStopDetail, Detection, PitStopAnalytics } from "../types";
+import { getPitStop, getDetections, getPitStopStatus, reprocessPitStop, getAnalytics, runAnalysis } from "../services/api";
 import StatusBadge from "../components/StatusBadge";
 import ProgressBar from "../components/ProgressBar";
 import DetectionTimeline from "../components/DetectionTimeline";
 import ConfidenceChart from "../components/ConfidenceChart";
 import ModelSelector from "../components/ModelSelector";
+import PitStopIntelligence from "../components/PitStopIntelligence";
 
 export default function AnalysisPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +17,8 @@ export default function AnalysisPage() {
   const [progressPct, setProgressPct] = useState(0);
   const [reprocessing, setReprocessing] = useState(false);
   const [selectedModel, setSelectedModel] = useState("");
+  const [analytics, setAnalytics] = useState<PitStopAnalytics | null>(null);
+  const [analyzingPitStop, setAnalyzingPitStop] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -29,6 +32,11 @@ export default function AnalysisPage() {
         if (ps.status === "completed") {
           const dets = await getDetections(numId, 1, 200);
           setDetections(dets.items);
+          // Try to load existing analytics
+          try {
+            const a = await getAnalytics(numId);
+            setAnalytics(a);
+          } catch { /* analytics may not exist yet */ }
         }
       } catch (err) {
         console.error(err);
@@ -51,6 +59,10 @@ export default function AnalysisPage() {
           if (ps.status === "completed") {
             const dets = await getDetections(numId, 1, 200);
             setDetections(dets.items);
+            try {
+              const a = await getAnalytics(numId);
+              setAnalytics(a);
+            } catch { /* analytics may not exist yet */ }
           }
         }
       } catch { /* ignore polling errors */ }
@@ -165,6 +177,40 @@ export default function AnalysisPage() {
 
           <h2 style={{ marginTop: 32 }}>Confidence by Class</h2>
           <ConfidenceChart summaries={pitStop.summaries} />
+
+          {/* Pit Stop Intelligence */}
+          {analytics ? (
+            <PitStopIntelligence analytics={analytics} />
+          ) : (
+            <div style={{ marginTop: 32 }}>
+              <button
+                onClick={async () => {
+                  setAnalyzingPitStop(true);
+                  try {
+                    const a = await runAnalysis(parseInt(id!));
+                    setAnalytics(a);
+                  } catch (err) {
+                    console.error("Analysis failed:", err);
+                  } finally {
+                    setAnalyzingPitStop(false);
+                  }
+                }}
+                disabled={analyzingPitStop}
+                style={{
+                  padding: "10px 20px",
+                  background: analyzingPitStop ? "#9ca3af" : "#3b82f6",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: analyzingPitStop ? "not-allowed" : "pointer",
+                }}
+              >
+                {analyzingPitStop ? "Analyzing..." : "Run Pit Stop Analysis"}
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
