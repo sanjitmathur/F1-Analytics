@@ -14,6 +14,22 @@ export interface Track {
   created_at: string;
 }
 
+export interface TrackHistoryWinner {
+  year: number;
+  driver: string;
+  team: string;
+}
+
+export interface TrackHistory {
+  track_name: string;
+  first_gp: number | null;
+  circuit_length_km: number | null;
+  lap_record: string | null;
+  lap_record_holder: string | null;
+  lap_record_year: number | null;
+  past_winners: TrackHistoryWinner[];
+}
+
 // --- Strategy ---
 
 export interface PitStopPlan {

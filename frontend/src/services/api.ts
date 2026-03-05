@@ -1,6 +1,7 @@
 import axios from "axios";
 import type {
   Track,
+  TrackHistory,
   SimulationRun,
   SimulationStatus,
   SimulationResult,
@@ -44,6 +45,11 @@ export async function createTrack(track: Omit<Track, "id" | "is_preset" | "creat
 
 export async function deleteTrack(id: number): Promise<void> {
   await client.delete(`/tracks/${id}`);
+}
+
+export async function getTrackHistory(id: number): Promise<TrackHistory> {
+  const { data } = await client.get<TrackHistory>(`/tracks/${id}/history`);
+  return data;
 }
 
 // --- Simulations ---

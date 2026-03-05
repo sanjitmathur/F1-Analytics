@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { listTracks, createTrack, deleteTrack } from "../services/api";
 import type { Track } from "../types";
 
 export default function TracksPage() {
+  const navigate = useNavigate();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -53,7 +55,14 @@ export default function TracksPage() {
 
       <div className="grid-3">
         {tracks.map((t, i) => (
-          <div className="card animate-in" key={t.id} style={{ animationDelay: `${i * 0.04}s` }}>
+          <div
+            className="card animate-in"
+            key={t.id}
+            style={{ animationDelay: `${i * 0.04}s`, cursor: "pointer", transition: "transform 0.2s" }}
+            onClick={() => navigate(`/tracks/${t.id}`)}
+            onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-4px)")}
+            onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
               <div>
                 <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 15, fontWeight: 800, letterSpacing: 0.5 }}>{t.name}</div>
@@ -79,7 +88,7 @@ export default function TracksPage() {
               ))}
             </div>
             {!t.is_preset && (
-              <button className="btn btn-ghost btn-sm" style={{ marginTop: 16, color: "var(--f1-red)", fontSize: 10 }} onClick={() => handleDelete(t.id)}>
+              <button className="btn btn-ghost btn-sm" style={{ marginTop: 16, color: "var(--f1-red)", fontSize: 10 }} onClick={(e) => { e.stopPropagation(); handleDelete(t.id); }}>
                 Delete Circuit
               </button>
             )}

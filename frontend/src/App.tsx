@@ -13,6 +13,7 @@ import RacePredictionPage from "./pages/RacePredictionPage";
 import HeadToHeadPage from "./pages/HeadToHeadPage";
 import ChampionshipPage from "./pages/ChampionshipPage";
 import WeatherAnalysisPage from "./pages/WeatherAnalysisPage";
+import TrackDetailPage from "./pages/TrackDetailPage";
 import ThemePicker from "./components/ThemePicker";
 import "./Landing.css";
 import "./App.css";
@@ -114,6 +115,7 @@ function AppContent() {
               <Route path="/results/:id" element={<SimulationResultsPage />} />
               <Route path="/monte-carlo/:id" element={<MonteCarloResultsPage />} />
               <Route path="/tracks" element={<TracksPage />} />
+              <Route path="/tracks/:id" element={<TrackDetailPage />} />
               <Route path="/import" element={<DataImportPage />} />
               <Route path="/compare" element={<ComparisonPage />} />
               <Route path="/season/2026" element={<SeasonCalendarPage />} />
