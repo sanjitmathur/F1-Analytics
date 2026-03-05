@@ -231,40 +231,105 @@ def _update_championship_standings(
     db, rw: RaceWeekend, points_total: dict[str, float],
     num_sims: int, win_counts: Counter, podium_counts: Counter,
 ) -> None:
-    """Update championship standings with average points from this race."""
+    """Update race weekend status, then rebuild all standings from scratch."""
+    rw.status = "predicted"
+    db.commit()
+
+    rebuild_championship_standings(db, rw.season_id)
+
+
+def rebuild_championship_standings(db, season_id: int) -> None:
+    """Rebuild all championship standings from completed race predictions.
+
+    This is called after every prediction run and after deletions to ensure
+    standings are always consistent with the current set of predictions.
+    """
+    from sqlalchemy import delete as sa_delete
+
     season = db.execute(
-        select(Season).where(Season.id == rw.season_id)
+        select(Season).where(Season.id == season_id)
     ).scalar_one_or_none()
     if not season:
         return
 
-    # Driver standings
-    for driver in DRIVERS_2026:
-        name = driver["name"]
-        avg_points = points_total.get(name, 0) / num_sims
+    # Wipe existing standings for this season
+    db.execute(
+        sa_delete(ChampionshipStanding).where(
+            ChampionshipStanding.season_id == season_id
+        )
+    )
 
-        existing = db.execute(
-            select(ChampionshipStanding).where(
-                ChampionshipStanding.season_id == season.id,
-                ChampionshipStanding.standing_type == "driver",
-                ChampionshipStanding.entity_name == name,
-            )
+    # Find all completed race predictions for this season
+    race_weekends = db.execute(
+        select(RaceWeekend).where(RaceWeekend.season_id == season_id)
+    ).scalars().all()
+
+    # Accumulators
+    driver_points: dict[str, float] = defaultdict(float)
+    driver_wins: dict[str, int] = defaultdict(int)
+    driver_podiums: dict[str, int] = defaultdict(int)
+    max_round = 0
+
+    for rw_item in race_weekends:
+        # Get the latest completed race prediction for this weekend
+        race_pred = db.execute(
+            select(RacePrediction).where(
+                RacePrediction.race_weekend_id == rw_item.id,
+                RacePrediction.prediction_type == "race",
+                RacePrediction.status == "completed",
+            ).order_by(RacePrediction.created_at.desc()).limit(1)
         ).scalar_one_or_none()
 
-        if existing:
-            existing.points = round(existing.points + avg_points, 1)
-            existing.wins += round(win_counts.get(name, 0) / num_sims)
-            existing.podiums += round(podium_counts.get(name, 0) / num_sims)
-            existing.through_round = max(existing.through_round, rw.round_number)
-        else:
+        if not race_pred:
+            continue
+
+        max_round = max(max_round, rw_item.round_number)
+
+        # Get results for this prediction
+        results = db.execute(
+            select(PredictionResult).where(
+                PredictionResult.prediction_id == race_pred.id
+            )
+        ).scalars().all()
+
+        num_sims_pred = race_pred.num_simulations or 1
+
+        for r in results:
+            # Convert percentages back to approximate counts, then to avg points
+            # Use predicted_position and win/podium percentages
+            win_count_approx = r.win_pct / 100
+            podium_count_approx = r.podium_pct / 100
+
+            # Calculate average points from position distribution
+            avg_pts = 0.0
+            if r.position_distribution:
+                for pos_str, pct in r.position_distribution.items():
+                    pos = int(pos_str)
+                    avg_pts += POINTS_SYSTEM.get(pos, 0) * (pct / 100)
+
+            driver_points[r.driver_name] += avg_pts
+            driver_wins[r.driver_name] += round(win_count_approx)
+            driver_podiums[r.driver_name] += round(podium_count_approx)
+
+    if max_round == 0:
+        db.commit()
+        return
+
+    # Build driver-to-team mapping
+    driver_team = {d["name"]: d["team"] for d in DRIVERS_2026}
+
+    # Create driver standings
+    for driver in DRIVERS_2026:
+        name = driver["name"]
+        if driver_points.get(name, 0) > 0 or name in driver_points:
             db.add(ChampionshipStanding(
-                season_id=season.id,
+                season_id=season_id,
                 standing_type="driver",
                 entity_name=name,
-                points=round(avg_points, 1),
-                wins=round(win_counts.get(name, 0) / num_sims),
-                podiums=round(podium_counts.get(name, 0) / num_sims),
-                through_round=rw.round_number,
+                points=round(driver_points.get(name, 0), 1),
+                wins=driver_wins.get(name, 0),
+                podiums=driver_podiums.get(name, 0),
+                through_round=max_round,
                 is_predicted=True,
             ))
 
@@ -273,39 +338,21 @@ def _update_championship_standings(
     team_wins: dict[str, int] = defaultdict(int)
     team_podiums: dict[str, int] = defaultdict(int)
 
-    for driver in DRIVERS_2026:
-        name = driver["name"]
-        team = driver["team"]
-        team_points[team] += points_total.get(name, 0) / num_sims
-        team_wins[team] += round(win_counts.get(name, 0) / num_sims)
-        team_podiums[team] += round(podium_counts.get(name, 0) / num_sims)
+    for name, team in driver_team.items():
+        team_points[team] += driver_points.get(name, 0)
+        team_wins[team] += driver_wins.get(name, 0)
+        team_podiums[team] += driver_podiums.get(name, 0)
 
     for team, pts in team_points.items():
-        existing = db.execute(
-            select(ChampionshipStanding).where(
-                ChampionshipStanding.season_id == season.id,
-                ChampionshipStanding.standing_type == "constructor",
-                ChampionshipStanding.entity_name == team,
-            )
-        ).scalar_one_or_none()
+        db.add(ChampionshipStanding(
+            season_id=season_id,
+            standing_type="constructor",
+            entity_name=team,
+            points=round(pts, 1),
+            wins=team_wins[team],
+            podiums=team_podiums[team],
+            through_round=max_round,
+            is_predicted=True,
+        ))
 
-        if existing:
-            existing.points = round(existing.points + pts, 1)
-            existing.wins += team_wins[team]
-            existing.podiums += team_podiums[team]
-            existing.through_round = max(existing.through_round, rw.round_number)
-        else:
-            db.add(ChampionshipStanding(
-                season_id=season.id,
-                standing_type="constructor",
-                entity_name=team,
-                points=round(pts, 1),
-                wins=team_wins[team],
-                podiums=team_podiums[team],
-                through_round=rw.round_number,
-                is_predicted=True,
-            ))
-
-    # Update race weekend status
-    rw.status = "predicted"
     db.commit()

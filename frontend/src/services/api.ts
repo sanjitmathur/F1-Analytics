@@ -184,6 +184,10 @@ export async function getRaceWeekendPredictions(rwId: number): Promise<RacePredi
   return data;
 }
 
+export async function deleteRaceWeekendPredictions(rwId: number): Promise<void> {
+  await client.delete(`/predictions/race-weekend/${rwId}`);
+}
+
 // --- Head to Head ---
 
 export async function getHeadToHead(d1: string, d2: string, track?: string, year?: number): Promise<HeadToHeadResult> {

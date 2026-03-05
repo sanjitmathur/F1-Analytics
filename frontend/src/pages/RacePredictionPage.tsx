@@ -6,6 +6,7 @@ import {
   startRacePrediction,
   getPredictionStatus,
   getRaceWeekendPredictions,
+  deleteRaceWeekendPredictions,
   getRaceWeather,
 } from "../services/api";
 import type { RaceWeekend, RacePrediction, TeamColors, WeatherData } from "../types";
@@ -13,6 +14,7 @@ import PodiumSpotlight from "../components/PodiumSpotlight";
 import QualifyingBracket from "../components/QualifyingBracket";
 import WeatherBadge from "../components/WeatherBadge";
 import MonteCarloDistribution from "../components/MonteCarloDistribution";
+import CircuitMap from "../components/CircuitMap";
 
 export default function RacePredictionPage() {
   const { round } = useParams<{ round: string }>();
@@ -116,22 +118,31 @@ export default function RacePredictionPage() {
         <Link to="/season/2026" className="btn btn-secondary btn-sm">Back</Link>
       </div>
 
-      {/* Track stats */}
-      <div className="card animate-in">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 16 }}>
-          {[
-            { label: "Laps", value: race.total_laps },
-            { label: "Base Lap", value: `${race.base_lap_time}s` },
-            { label: "Pit Loss", value: `${race.pit_loss_time}s` },
-            { label: "DRS Zones", value: race.drs_zones },
-            { label: "Overtake", value: `${race.overtake_difficulty}x` },
-            { label: "SC Chance", value: `${(race.safety_car_probability * 100).toFixed(0)}%` },
-          ].map(item => (
-            <div key={item.label} style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 18, fontWeight: 800 }}>{item.value}</div>
-              <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1.5, marginTop: 2 }}>{item.label}</div>
-            </div>
-          ))}
+      {/* Track info + Circuit map */}
+      <div className="animate-in" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        {/* Left — Track Info */}
+        <div className="card" style={{ margin: 0 }}>
+          <div className="card-header">Track Info</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
+            {[
+              { label: "Laps", value: race.total_laps },
+              { label: "Base Lap Time", value: `${race.base_lap_time}s` },
+              { label: "Pit Loss", value: `${race.pit_loss_time}s` },
+              { label: "DRS Zones", value: race.drs_zones },
+              { label: "Overtake Difficulty", value: `${race.overtake_difficulty}x` },
+              { label: "Safety Car Chance", value: `${(race.safety_car_probability * 100).toFixed(0)}%` },
+            ].map(item => (
+              <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid var(--border-color)" }}>
+                <span style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 1 }}>{item.label}</span>
+                <span style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 16, fontWeight: 800 }}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right — Circuit Map */}
+        <div className="card" style={{ margin: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <CircuitMap trackName={race.track_name} color="var(--f1-red)" size={300} />
         </div>
       </div>
 
@@ -150,10 +161,28 @@ export default function RacePredictionPage() {
                   <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
                   {progress.toFixed(0)}%
                 </span>
+              ) : predictions.length > 0 ? (
+                "Re-run Prediction"
               ) : (
                 "Run Prediction"
               )}
             </button>
+            {predictions.length > 0 && (
+              <button
+                className="btn btn-sm"
+                style={{ background: "var(--f1-red)", color: "#fff", border: "none" }}
+                disabled={running}
+                onClick={async () => {
+                  if (!race || !confirm("Delete all predictions for this race?")) return;
+                  try {
+                    await deleteRaceWeekendPredictions(race.id);
+                    setPredictions([]);
+                  } catch { /* ignore */ }
+                }}
+              >
+                Delete Prediction
+              </button>
+            )}
             <button className="btn btn-ghost btn-sm" onClick={() => setShowAdvanced(!showAdvanced)}>
               {showAdvanced ? "Hide" : "Advanced"} Options
             </button>

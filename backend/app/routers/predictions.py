@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
@@ -16,7 +16,7 @@ from ..schemas import (
     PredictionResultOut,
     PredictionStatusOut,
 )
-from ..services.prediction_runner import run_prediction_background
+from ..services.prediction_runner import rebuild_championship_standings, run_prediction_background
 
 router = APIRouter(prefix="/api/predictions", tags=["predictions"])
 
@@ -117,6 +117,63 @@ async def get_prediction_results(
     if not results:
         raise HTTPException(404, "No results found")
     return results
+
+
+@router.delete("/race-weekend/{race_weekend_id}")
+async def delete_race_weekend_predictions(
+    race_weekend_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete all predictions for a race weekend and reset its status."""
+    rw_result = await db.execute(
+        select(RaceWeekend).where(RaceWeekend.id == race_weekend_id)
+    )
+    rw = rw_result.scalar_one_or_none()
+    if not rw:
+        raise HTTPException(404, "Race weekend not found")
+
+    # Find all predictions for this race weekend
+    pred_result = await db.execute(
+        select(RacePrediction).where(RacePrediction.race_weekend_id == race_weekend_id)
+    )
+    predictions = pred_result.scalars().all()
+
+    # Delete prediction results, then predictions
+    for pred in predictions:
+        await db.execute(
+            delete(PredictionResult).where(PredictionResult.prediction_id == pred.id)
+        )
+    await db.execute(
+        delete(RacePrediction).where(RacePrediction.race_weekend_id == race_weekend_id)
+    )
+
+    # Reset race weekend status
+    if rw.status == "predicted":
+        rw.status = "upcoming"
+
+    await db.commit()
+
+    # Rebuild championship standings in a background thread (uses sync DB)
+    season_id = rw.season_id
+    thread = threading.Thread(
+        target=_rebuild_standings_sync,
+        args=(season_id,),
+        daemon=True,
+    )
+    thread.start()
+
+    return {"message": "Predictions deleted"}
+
+
+def _rebuild_standings_sync(season_id: int) -> None:
+    """Rebuild standings using sync DB (for use from async context)."""
+    from ..database import get_sync_db
+
+    db = get_sync_db()
+    try:
+        rebuild_championship_standings(db, season_id)
+    finally:
+        db.close()
 
 
 @router.get("/race-weekend/{race_weekend_id}", response_model=list[PredictionFullOut])
