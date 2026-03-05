@@ -94,7 +94,7 @@ const SPEED_OPTIONS: SpeedOption[] = [
 ];
 
 const RaceReplay: React.FC<RaceReplayProps> = ({ lapData, totalLaps, trackName = '' }) => {
-  const pathRef = useRef<SVGPathElement>(null);
+  const [pathEl, setPathEl] = useState<SVGPathElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number>(0);
   const timeRef = useRef<number>(0);
@@ -116,10 +116,10 @@ const RaceReplay: React.FC<RaceReplayProps> = ({ lapData, totalLaps, trackName =
   // Get path total length for positioning
   const [pathLength, setPathLength] = useState(0);
   useEffect(() => {
-    if (pathRef.current) {
-      setPathLength(pathRef.current.getTotalLength());
+    if (pathEl) {
+      setPathLength(pathEl.getTotalLength());
     }
-  }, [circuitPath]);
+  }, [pathEl, circuitPath]);
 
   // Get positions for a given lap
   const getPositionsForLap = useCallback(
@@ -196,12 +196,12 @@ const RaceReplay: React.FC<RaceReplayProps> = ({ lapData, totalLaps, trackName =
   // Get point on path at a given fraction (0-1)
   const getPointOnPath = useCallback(
     (fraction: number): { x: number; y: number } => {
-      if (!pathRef.current || pathLength === 0) return { x: 0, y: 0 };
+      if (!pathEl || pathLength === 0) return { x: 0, y: 0 };
       const len = ((fraction % 1) + 1) % 1 * pathLength;
-      const pt = pathRef.current.getPointAtLength(len);
+      const pt = pathEl.getPointAtLength(len);
       return { x: pt.x, y: pt.y };
     },
-    [pathLength]
+    [pathEl, pathLength]
   );
 
   // Current driver positions
@@ -226,6 +226,17 @@ const RaceReplay: React.FC<RaceReplayProps> = ({ lapData, totalLaps, trackName =
     () => Math.max(...(positions.map(p => p.position) || [20]), 20),
     [positions]
   );
+
+  // Pre-compute start/finish line geometry
+  const startFinishLine = useMemo(() => {
+    if (!pathEl || pathLength === 0) return null;
+    const p0 = pathEl.getPointAtLength(0);
+    const p1 = pathEl.getPointAtLength(Math.min(10, pathLength));
+    const dx = p1.x - p0.x;
+    const dy = p1.y - p0.y;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    return { x: p0.x, y: p0.y, nx: -dy / len, ny: dx / len };
+  }, [pathEl, pathLength]);
 
   const handlePlayPause = () => {
     if (!isPlaying && currentLap >= maxLapNum) {
@@ -298,23 +309,17 @@ const RaceReplay: React.FC<RaceReplayProps> = ({ lapData, totalLaps, trackName =
             {/* Track surface */}
             <path d={circuitPath} fill="none" stroke="rgba(255, 255, 255, 0.06)" strokeWidth={strokeW * 10} strokeLinecap="round" strokeLinejoin="round" />
             {/* Track outline */}
-            <path ref={pathRef} d={circuitPath} fill="none" stroke="rgba(255, 255, 255, 0.18)" strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" />
+            <path ref={setPathEl} d={circuitPath} fill="none" stroke="rgba(255, 255, 255, 0.18)" strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" />
 
             {/* Start/Finish line */}
-            {pathLength > 0 && (() => {
-              const p0 = pathRef.current!.getPointAtLength(0);
-              const p1 = pathRef.current!.getPointAtLength(Math.min(10, pathLength));
-              const dx = p1.x - p0.x;
-              const dy = p1.y - p0.y;
-              const len = Math.sqrt(dx * dx + dy * dy) || 1;
-              const nx = -dy / len;
-              const ny = dx / len;
+            {startFinishLine && (() => {
+              const { x, y, nx, ny } = startFinishLine;
               const ll = isReal ? 16 : 7;
               return (
                 <g>
-                  <line x1={p0.x + nx * ll} y1={p0.y + ny * ll} x2={p0.x - nx * ll} y2={p0.y - ny * ll}
+                  <line x1={x + nx * ll} y1={y + ny * ll} x2={x - nx * ll} y2={y - ny * ll}
                     stroke="white" strokeWidth={isReal ? 3 : 1.5} strokeDasharray={isReal ? '4 4' : '2 2'} opacity={0.7} />
-                  <text x={p0.x + nx * (ll + (isReal ? 14 : 6))} y={p0.y + ny * (ll + (isReal ? 14 : 6))}
+                  <text x={x + nx * (ll + (isReal ? 14 : 6))} y={y + ny * (ll + (isReal ? 14 : 6))}
                     fill="rgba(255, 255, 255, 0.5)" fontSize={isReal ? 10 : 5} fontFamily="Orbitron, sans-serif" textAnchor="middle" dominantBaseline="middle">
                     S/F
                   </text>

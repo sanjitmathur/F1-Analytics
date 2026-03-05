@@ -486,11 +486,10 @@ function ScrollIndicator() {
 
 /* ─── Scroll progress tracker (0-1 as element traverses viewport) ─── */
 function useScrollProgress() {
-  const ref = useRef<HTMLDivElement>(null);
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    const el = ref.current;
     if (!el) return;
     const wrapper = el.closest(".landing-scroll-wrapper");
     if (!wrapper) return;
@@ -505,18 +504,17 @@ function useScrollProgress() {
     wrapper.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => wrapper.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [el]);
 
-  return { ref, progress };
+  return { callbackRef: setEl, progress };
 }
 
 /* ─── Intersection Observer hook for scroll animations ─── */
 function useReveal(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null);
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
       ([entry]) => { setVisible(entry.isIntersecting); },
@@ -524,9 +522,9 @@ function useReveal(threshold = 0.15) {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [threshold]);
+  }, [el, threshold]);
 
-  return { ref, visible };
+  return { callbackRef: setEl, visible };
 }
 
 /* ─── Animated counter ─── */
@@ -667,14 +665,14 @@ export default function LandingPage() {
   }, [launching, navigate, playBeep, playLightsOut, playEngineRev]);
 
   /* Section reveals */
-  const features = useReveal(0.1);
-  const howItWorks = useReveal(0.1);
-  const techStack = useReveal(0.1);
-  const cta2 = useReveal(0.1);
+  const { callbackRef: featuresRef, visible: featuresVis } = useReveal(0.1);
+  const { callbackRef: howItWorksRef, visible: howItWorksVis } = useReveal(0.1);
+  const { callbackRef: techStackRef, visible: techStackVis } = useReveal(0.1);
+  const { callbackRef: cta2Ref, visible: cta2Vis } = useReveal(0.1);
 
   /* Parallax on background elements */
-  const parallax = useScrollProgress();
-  const parallaxY = (parallax.progress - 0.5) * -80;
+  const { callbackRef: parallaxRef, progress: parallaxProgress } = useScrollProgress();
+  const parallaxY = (parallaxProgress - 0.5) * -80;
 
   return (
     <div className={`landing-page ${mounted ? "mounted" : ""} ${launching ? "launching" : ""}`}>
@@ -685,7 +683,7 @@ export default function LandingPage() {
       <div className="landing-orb landing-orb-1" style={{ transform: `translate(0, ${parallaxY * 0.5}px)` }} />
       <div className="landing-orb landing-orb-2" style={{ transform: `translate(0, ${parallaxY * -0.3}px)` }} />
       <div className="landing-orb landing-orb-3" style={{ transform: `translate(0, ${parallaxY * 0.7}px)` }} />
-      <div className="landing-grid" ref={parallax.ref} />
+      <div className="landing-grid" ref={parallaxRef} />
 
       {lightPhase > 0 && <StartLights phase={lightPhase} />}
       <SpeedWarp active={warpActive} />
@@ -757,8 +755,8 @@ export default function LandingPage() {
         </section>
 
         {/* ─── SECTION 2: What is this platform ─── */}
-        <section className="landing-section" ref={features.ref}>
-          <div className={`landing-section-inner ${features.visible ? "revealed" : ""}`}>
+        <section className="landing-section" ref={featuresRef}>
+          <div className={`landing-section-inner ${featuresVis ? "revealed" : ""}`}>
             <div className="ls-label">
               <span className="ls-label-dot" />
               WHAT WE SIMULATE
@@ -779,7 +777,7 @@ export default function LandingPage() {
                 { icon: "purple", svg: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></>, title: "Pit Strategy", desc: "Configure multi-stop strategies per driver. The engine evaluates 20-25s pit losses, tire resets, and optimal undercut timing." },
                 { icon: "red", svg: <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />, title: "2026 Season", desc: "Full 24-race calendar with AI predictions for every Grand Prix, championship standings, and head-to-head driver comparisons." },
               ].map((feat, i) => (
-                <TiltCard key={feat.title} className={`ls-feature-card scroll-stagger ${features.visible ? "stagger-in" : ""}`} style={{ transitionDelay: `${i * 0.1}s` }}>
+                <TiltCard key={feat.title} className={`ls-feature-card scroll-stagger ${featuresVis ? "stagger-in" : ""}`} style={{ transitionDelay: `${i * 0.1}s` }}>
                   <div className={`ls-feature-icon ls-icon-${feat.icon}`}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{feat.svg}</svg>
                   </div>
@@ -792,8 +790,8 @@ export default function LandingPage() {
         </section>
 
         {/* ─── SECTION 3: How It Works ─── */}
-        <section className="landing-section" ref={howItWorks.ref}>
-          <div className={`landing-section-inner ${howItWorks.visible ? "revealed" : ""}`}>
+        <section className="landing-section" ref={howItWorksRef}>
+          <div className={`landing-section-inner ${howItWorksVis ? "revealed" : ""}`}>
             <div className="ls-label">
               <span className="ls-label-dot" />
               HOW IT WORKS
@@ -804,7 +802,7 @@ export default function LandingPage() {
             </p>
 
             <div className="ls-vboxes">
-              <TiltCard className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0s" }}>
+              <TiltCard className={`ls-vbox scroll-stagger-up ${howItWorksVis ? "stagger-in" : ""}`} style={{ transitionDelay: "0s" }}>
                 <div className="ls-vbox-top">
                   <span className="ls-vbox-num">01</span>
                   <div className="ls-vbox-icon ls-icon-red">
@@ -822,7 +820,7 @@ export default function LandingPage() {
                 </div>
               </TiltCard>
 
-              <TiltCard className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0.15s" }}>
+              <TiltCard className={`ls-vbox scroll-stagger-up ${howItWorksVis ? "stagger-in" : ""}`} style={{ transitionDelay: "0.15s" }}>
                 <div className="ls-vbox-top">
                   <span className="ls-vbox-num">02</span>
                   <div className="ls-vbox-icon ls-icon-blue">
@@ -842,7 +840,7 @@ export default function LandingPage() {
                 </div>
               </TiltCard>
 
-              <TiltCard className={`ls-vbox scroll-stagger-up ${howItWorks.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0.3s" }}>
+              <TiltCard className={`ls-vbox scroll-stagger-up ${howItWorksVis ? "stagger-in" : ""}`} style={{ transitionDelay: "0.3s" }}>
                 <div className="ls-vbox-top">
                   <span className="ls-vbox-num">03</span>
                   <div className="ls-vbox-icon ls-icon-green">
@@ -867,8 +865,8 @@ export default function LandingPage() {
         </section>
 
         {/* ─── SECTION 4: Tech Stack ─── */}
-        <section className="landing-section" ref={techStack.ref}>
-          <div className={`landing-section-inner ${techStack.visible ? "revealed" : ""}`}>
+        <section className="landing-section" ref={techStackRef}>
+          <div className={`landing-section-inner ${techStackVis ? "revealed" : ""}`}>
             <div className="ls-label">
               <span className="ls-label-dot" />
               UNDER THE HOOD
@@ -885,7 +883,7 @@ export default function LandingPage() {
                 { label: "SIMULATION", name: "Pure Python Engine", desc: "Zero framework dependencies. Lap model, overtake model, pit strategy optimizer, safety car module, and Monte Carlo aggregator.", dir: "left" },
                 { label: "DATA", name: "FastF1 Integration", desc: "Import real historical race data from 2020-2025. Compare simulation predictions against actual results for validation.", dir: "right" },
               ].map((tech, i) => (
-                <div key={tech.label} className={`ls-tech-card scroll-stagger-${tech.dir} ${techStack.visible ? "stagger-in" : ""}`} style={{ transitionDelay: `${i * 0.12}s` }}>
+                <div key={tech.label} className={`ls-tech-card scroll-stagger-${tech.dir} ${techStackVis ? "stagger-in" : ""}`} style={{ transitionDelay: `${i * 0.12}s` }}>
                   <div className="ls-tech-label">{tech.label}</div>
                   <div className="ls-tech-name">{tech.name}</div>
                   <p>{tech.desc}</p>
@@ -893,7 +891,7 @@ export default function LandingPage() {
               ))}
             </div>
 
-            <div className={`ls-stats-strip scroll-stagger-up ${techStack.visible ? "stagger-in" : ""}`} style={{ transitionDelay: "0.5s" }}>
+            <div className={`ls-stats-strip scroll-stagger-up ${techStackVis ? "stagger-in" : ""}`} style={{ transitionDelay: "0.5s" }}>
               <div className="ls-stat-item">
                 <span className="ls-stat-num"><AnimatedCounter target={10} suffix="+" /></span>
                 <span className="ls-stat-desc">Real F1 Circuits</span>
@@ -918,8 +916,8 @@ export default function LandingPage() {
         </section>
 
         {/* ─── SECTION 5: Final CTA ─── */}
-        <section className="landing-section landing-section-cta" ref={cta2.ref}>
-          <div className={`landing-section-inner scroll-zoom ${cta2.visible ? "revealed zoom-in" : ""}`}>
+        <section className="landing-section landing-section-cta" ref={cta2Ref}>
+          <div className={`landing-section-inner scroll-zoom ${cta2Vis ? "revealed zoom-in" : ""}`}>
             <div className="ls-cta-circuit">
               <CircuitMap trackName="Monza" color="#e10600" opacity={0.06} size={500} />
             </div>

@@ -76,7 +76,7 @@ function PageTransition({ children }: { children: React.ReactNode }) {
   return (
     <div className={`page-transition page-transition-${transitionStage}`}>
       <Routes location={displayLocation}>
-        {children as any}
+        {children as React.ReactNode}
       </Routes>
     </div>
   );
