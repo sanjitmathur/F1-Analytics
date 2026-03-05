@@ -46,16 +46,18 @@ echo   Backend:  http://localhost:8000
 echo   Frontend: http://localhost:5173
 echo.
 echo   Open http://localhost:5173 in your browser.
-echo   Press Ctrl+C to stop both servers.
+echo   Press Ctrl+C in this window to stop the frontend.
+echo   Close the backend window to stop the backend.
 echo ============================================
 echo.
 
-:: Start backend in background
-start /b cmd /c "call venv\Scripts\activate.bat && cd backend && python -m uvicorn app.main:app --port 8000 2>&1"
+:: Start backend in a separate visible window so it stays alive and is easy to close
+start "F1 Backend - localhost:8000" cmd /k "call venv\Scripts\activate.bat && cd backend && python -m uvicorn app.main:app --port 8000"
 
-:: Wait for backend to start
+:: Wait for backend to be ready
+echo Waiting for backend to start...
 timeout /t 5 /nobreak >nul
 
-:: Start frontend (foreground so Ctrl+C kills everything)
+:: Start frontend in foreground
 cd frontend
 call npx vite --host
