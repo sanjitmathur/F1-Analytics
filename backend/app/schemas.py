@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 # --- Health ---
 
@@ -54,6 +54,20 @@ class DriverConfigSchema(BaseModel):
     pit_stops: list[PitStopPlanSchema] = []
     dnf_chance_per_lap: float = 0.001
 
+    @field_validator("grid_position")
+    @classmethod
+    def validate_grid_position(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("grid_position must be >= 1")
+        return v
+
+    @field_validator("starting_compound")
+    @classmethod
+    def validate_compound(cls, v: str) -> str:
+        if v not in ("SOFT", "MEDIUM", "HARD"):
+            raise ValueError("starting_compound must be SOFT, MEDIUM, or HARD")
+        return v
+
 
 # --- Simulation ---
 
@@ -66,6 +80,27 @@ class SimulationCreate(BaseModel):
     weather: str = "dry"  # dry, wet, mixed
     rain_intensity: float = 0.5  # 0.0-1.0
     include_qualifying: bool = False
+
+    @field_validator("rain_intensity")
+    @classmethod
+    def validate_rain_intensity(cls, v: float) -> float:
+        if not 0.0 <= v <= 1.0:
+            raise ValueError("rain_intensity must be between 0.0 and 1.0")
+        return v
+
+    @field_validator("sim_type")
+    @classmethod
+    def validate_sim_type(cls, v: str) -> str:
+        if v not in ("single", "monte_carlo", "full_weekend"):
+            raise ValueError("sim_type must be single, monte_carlo, or full_weekend")
+        return v
+
+    @field_validator("weather")
+    @classmethod
+    def validate_weather(cls, v: str) -> str:
+        if v not in ("dry", "wet", "mixed"):
+            raise ValueError("weather must be dry, wet, or mixed")
+        return v
 
 
 class SimulationRunResponse(BaseModel):

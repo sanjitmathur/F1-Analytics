@@ -511,7 +511,7 @@ function useScrollProgress() {
 
 /* ─── Intersection Observer hook for scroll animations ─── */
 function useReveal(threshold = 0.15) {
-  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const [el, setEl] = useState<HTMLElement | null>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {

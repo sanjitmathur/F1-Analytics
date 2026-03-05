@@ -25,20 +25,29 @@ export default function SimulationResultsPage() {
   useEffect(() => {
     if (!id) return;
     const runId = Number(id);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
-      const status = await getSimulationStatus(runId);
-      if (status.status === "completed") {
-        const [s, r, l, c] = await Promise.all([
-          getSimulation(runId), getSimulationResults(runId), getLapData(runId), getTeamColors(),
-        ]);
-        setSim(s); setResults(r); setLaps(l); setTeamColors(c); setLoading(false);
-      } else if (status.status === "failed") {
-        const s = await getSimulation(runId); setSim(s); setLoading(false);
-      } else {
-        setTimeout(poll, 1000);
+      try {
+        const status = await getSimulationStatus(runId);
+        if (cancelled) return;
+        if (status.status === "completed") {
+          const [s, r, l, c] = await Promise.all([
+            getSimulation(runId), getSimulationResults(runId), getLapData(runId), getTeamColors(),
+          ]);
+          if (!cancelled) { setSim(s); setResults(r); setLaps(l); setTeamColors(c); setLoading(false); }
+        } else if (status.status === "failed") {
+          const s = await getSimulation(runId);
+          if (!cancelled) { setSim(s); setLoading(false); }
+        } else {
+          timer = setTimeout(poll, 1000);
+        }
+      } catch {
+        if (!cancelled) { setLoading(false); setSim({ status: "failed", error_message: "Connection lost" } as SimulationRun); }
       }
     };
     poll();
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [id]);
 
   const formatTime = (sec: number) => {
@@ -71,9 +80,9 @@ export default function SimulationResultsPage() {
     );
   }
 
-  const winner = results[0];
-  const p2 = results[1];
-  const p3 = results[2];
+  const winner = results.length > 0 ? results[0] : undefined;
+  const p2 = results.length > 1 ? results[1] : undefined;
+  const p3 = results.length > 2 ? results[2] : undefined;
   const totalLaps = winner?.laps_completed || 0;
   const winnerColor = winner ? (teamColors[winner.team] || "var(--f1-red)") : "var(--f1-red)";
 

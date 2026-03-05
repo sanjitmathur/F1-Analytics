@@ -253,6 +253,7 @@ export default function HeadToHeadPage() {
       {/* Results */}
       {loading && (
         <div className="card animate-in" style={{ textAlign: "center", padding: 40 }}>
+          <span className="spinner" style={{ width: 32, height: 32, borderWidth: 2, margin: "0 auto 12px", display: "block" }} />
           <p style={{ color: "var(--text-muted)" }}>Loading comparison...</p>
         </div>
       )}

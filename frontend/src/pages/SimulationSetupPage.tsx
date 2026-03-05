@@ -104,9 +104,12 @@ export default function SimulationSetupPage() {
     setDrivers(prev => prev.map((d, i) => i === di ? { ...d, pit_stops: d.pit_stops.filter((_, j) => j !== si) } : d));
   };
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const handleSubmit = async () => {
     if (!selectedTrackId || drivers.length < 2) return;
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const resp = await startSimulation({
         name: simName || undefined,
@@ -117,6 +120,8 @@ export default function SimulationSetupPage() {
         weather,
       });
       navigate(simType === "monte_carlo" ? `/monte-carlo/${resp.id}` : `/results/${resp.id}`);
+    } catch {
+      setSubmitError("Failed to start simulation. Please check your configuration and try again.");
     } finally {
       setSubmitting(false);
     }
@@ -277,7 +282,7 @@ export default function SimulationSetupPage() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {drivers.map((driver, di) => (
-              <div key={di} style={{
+              <div key={`${driver.name}-${driver.team}-${di}`} style={{
                 display: "flex", alignItems: "center", gap: 16, padding: "14px 16px",
                 borderRadius: "var(--radius-sm)", background: "var(--bg-glass)",
                 border: "1px solid var(--border-color)",
@@ -320,6 +325,9 @@ export default function SimulationSetupPage() {
       </div>
 
       {/* Submit */}
+      {submitError && (
+        <div style={{ color: "var(--f1-red)", fontSize: 13, textAlign: "right", marginTop: 8 }}>{submitError}</div>
+      )}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 8 }} className="animate-in">
         <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting || drivers.length < 2 || !selectedTrackId}
           style={{ padding: "16px 40px", fontSize: 14 }}

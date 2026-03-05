@@ -23,19 +23,28 @@ export default function MonteCarloResultsPage() {
   useEffect(() => {
     if (!id) return;
     const runId = Number(id);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
-      const status = await getSimulationStatus(runId);
-      setProgress(status.progress_pct);
-      if (status.status === "completed") {
-        const [s, mc, c] = await Promise.all([getSimulation(runId), getMonteCarloResults(runId), getTeamColors()]);
-        setSim(s); setMcResult(mc); setTeamColors(c); setLoading(false);
-      } else if (status.status === "failed") {
-        const s = await getSimulation(runId); setSim(s); setLoading(false);
-      } else {
-        setTimeout(poll, 1500);
+      try {
+        const status = await getSimulationStatus(runId);
+        if (cancelled) return;
+        setProgress(status.progress_pct);
+        if (status.status === "completed") {
+          const [s, mc, c] = await Promise.all([getSimulation(runId), getMonteCarloResults(runId), getTeamColors()]);
+          if (!cancelled) { setSim(s); setMcResult(mc); setTeamColors(c); setLoading(false); }
+        } else if (status.status === "failed") {
+          const s = await getSimulation(runId);
+          if (!cancelled) { setSim(s); setLoading(false); }
+        } else {
+          timer = setTimeout(poll, 1500);
+        }
+      } catch {
+        if (!cancelled) { setLoading(false); setSim({ status: "failed", error_message: "Connection lost" } as SimulationRun); }
       }
     };
     poll();
+    return () => { cancelled = true; clearTimeout(timer); };
   }, [id]);
 
   if (loading) {

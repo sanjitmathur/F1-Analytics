@@ -149,6 +149,10 @@ class Race:
                 if not car.is_dnf:
                     car.positions_per_lap.append(car.position)
 
+            # Early termination if all drivers DNF
+            if all(c.is_dnf for c in self.cars):
+                break
+
             # Update gap_to_leader in lap records for this lap
             leader_time = min(
                 (c.total_time for c in self.cars if not c.is_dnf),

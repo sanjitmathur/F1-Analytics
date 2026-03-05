@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_db
-from ..models import LapData, SimulationResult, SimulationRun, Track
+from ..models import LapData, MonteCarloData, SimulationResult, SimulationRun, Track
 from ..schemas import (
     LapDataResponse,
     SimulationCreate,
@@ -45,11 +45,9 @@ async def start_simulation(data: SimulationCreate, db: AsyncSession = Depends(ge
         status="pending",
         sim_type=data.sim_type,
         num_simulations=data.num_simulations if data.sim_type == "monte_carlo" else 1,
-        driver_config=config_data,
+        driver_config={"drivers": config_data, "weather": data.weather, "rain_intensity": data.rain_intensity},
         error_message=None,
     )
-    # Store weather in a JSON-safe way via a metadata approach
-    run.driver_config = {"drivers": config_data, "weather": data.weather, "rain_intensity": data.rain_intensity}
     db.add(run)
     await db.commit()
     await db.refresh(run)
@@ -126,6 +124,9 @@ async def delete_simulation(run_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(404, "Simulation not found")
 
     # Delete related data
+    await db.execute(
+        MonteCarloData.__table__.delete().where(MonteCarloData.run_id == run_id)
+    )
     await db.execute(
         SimulationResult.__table__.delete().where(SimulationResult.run_id == run_id)
     )

@@ -1,9 +1,8 @@
 """SQLAlchemy ORM models for the F1 Strategy Simulator."""
 
-from datetime import datetime
-
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
-from sqlalchemy.types import JSON
+from sqlalchemy import Boolean, Column, Float, Integer, String
+from sqlalchemy.sql import func
+from sqlalchemy.types import JSON, DateTime
 
 from .database import Base
 
@@ -21,7 +20,7 @@ class Track(Base):
     overtake_difficulty = Column(Float, default=1.0)
     safety_car_probability = Column(Float, default=0.03)
     is_preset = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=func.now())
 
 
 class SimulationRun(Base):
@@ -37,7 +36,7 @@ class SimulationRun(Base):
     completed_simulations = Column(Integer, default=0)
     driver_config = Column(JSON, nullable=False)  # list of driver+strategy configs
     error_message = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=func.now())
     completed_at = Column(DateTime, nullable=True)
 
 
@@ -90,7 +89,7 @@ class MonteCarloData(Base):
     avg_position = Column(Float, default=0.0)
     avg_gap = Column(Float, default=0.0)
     best_position = Column(Integer, default=20)
-    worst_position = Column(Integer, default=1)
+    worst_position = Column(Integer, default=20)
     position_distribution = Column(JSON, default=dict)
 
 
@@ -104,7 +103,7 @@ class ImportedRaceData(Base):
     csv_path = Column(String, nullable=True)
     driver_count = Column(Integer, default=0)
     total_laps = Column(Integer, default=0)
-    imported_at = Column(DateTime, default=datetime.utcnow)
+    imported_at = Column(DateTime, default=func.now())
 
 
 # ─── 2026 Season Prediction Models ──────────────────────────────────────────
@@ -116,7 +115,7 @@ class Season(Base):
     id = Column(Integer, primary_key=True, index=True)
     year = Column(Integer, nullable=False, unique=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=func.now())
 
 
 class RaceWeekend(Base):
@@ -139,7 +138,7 @@ class RaceWeekend(Base):
     safety_car_probability = Column(Float, default=0.03)
     status = Column(String, default="upcoming")  # upcoming, predicted, completed
     weather_data = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=func.now())
 
 
 class RacePrediction(Base):
@@ -154,7 +153,7 @@ class RacePrediction(Base):
     weather_condition = Column(String, default="dry")  # dry, wet, mixed
     parameter_overrides = Column(JSON, nullable=True)
     error_message = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=func.now())
     completed_at = Column(DateTime, nullable=True)
 
 
@@ -211,7 +210,7 @@ class DriverPerformanceCache(Base):
     avg_tire_degradation = Column(Float, default=0.0)
     wet_performance_delta = Column(Float, default=0.0)
     consistency_score = Column(Float, default=0.5)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=func.now())
 
 
 class ChampionshipStanding(Base):

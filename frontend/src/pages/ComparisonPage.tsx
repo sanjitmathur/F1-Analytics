@@ -26,7 +26,10 @@ export default function ComparisonPage() {
     Promise.all(selectedIds.map(async id => {
       const results = await getSimulationResults(id);
       return [id, results] as [number, SimulationResult[]];
-    })).then(entries => { setResultsMap(Object.fromEntries(entries)); setLoading(false); });
+    }))
+      .then(entries => { setResultsMap(Object.fromEntries(entries)); })
+      .catch(() => { setResultsMap({}); })
+      .finally(() => setLoading(false));
   }, [selectedIds]);
 
   const allDrivers = [...new Set(selectedIds.flatMap(id => (resultsMap[id] || []).map(r => r.driver_name)))];

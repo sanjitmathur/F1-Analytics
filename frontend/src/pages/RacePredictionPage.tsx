@@ -61,14 +61,18 @@ export default function RacePredictionPage() {
       // Poll race prediction (qualifying usually finishes first)
       const raceId = resp.race_prediction_id;
       const poll = async () => {
-        const status = await getPredictionStatus(raceId);
-        setProgress(status.progress_pct);
-        if (status.status === "completed" || status.status === "failed") {
-          const preds = await getRaceWeekendPredictions(race.id);
-          setPredictions(preds);
+        try {
+          const status = await getPredictionStatus(raceId);
+          setProgress(status.progress_pct);
+          if (status.status === "completed" || status.status === "failed") {
+            const preds = await getRaceWeekendPredictions(race.id);
+            setPredictions(preds);
+            setRunning(false);
+          } else {
+            setTimeout(poll, 1500);
+          }
+        } catch {
           setRunning(false);
-        } else {
-          setTimeout(poll, 1500);
         }
       };
       setTimeout(poll, 2000);
