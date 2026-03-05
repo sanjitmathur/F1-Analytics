@@ -292,8 +292,6 @@ def rebuild_championship_standings(db, season_id: int) -> None:
             )
         ).scalars().all()
 
-        num_sims_pred = race_pred.num_simulations or 1
-
         for r in results:
             # Convert percentages back to approximate counts, then to avg points
             # Use predicted_position and win/podium percentages

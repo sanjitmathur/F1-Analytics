@@ -1,6 +1,7 @@
 """Preset data for tracks, teams, and drivers."""
 
 from __future__ import annotations
+
 from datetime import date
 
 TEAM_COLORS: dict[str, str] = {

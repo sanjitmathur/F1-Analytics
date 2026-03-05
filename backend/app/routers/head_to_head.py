@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..constants import DRIVERS_2026, HISTORICAL_STATS, POINTS_SYSTEM
+from ..constants import DRIVERS_2026, HISTORICAL_STATS
 from ..database import get_db
 from ..models import ChampionshipStanding, PredictionResult, RacePrediction, RaceWeekend, Season
 from ..schemas import HeadToHeadOut

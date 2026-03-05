@@ -53,7 +53,7 @@ async def get_weather_impact(
     """Compare dry vs wet prediction impact (if predictions exist)."""
     from ..models import PredictionResult, RacePrediction
 
-    rw = await _get_rw(race_weekend_id, db)
+    await _get_rw(race_weekend_id, db)
 
     # Find dry and wet predictions
     results = {}
