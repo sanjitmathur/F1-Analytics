@@ -14,6 +14,7 @@ import HeadToHeadPage from "./pages/HeadToHeadPage";
 import ChampionshipPage from "./pages/ChampionshipPage";
 import WeatherAnalysisPage from "./pages/WeatherAnalysisPage";
 import TrackDetailPage from "./pages/TrackDetailPage";
+import DriversPage from "./pages/DriversPage";
 import ThemePicker from "./components/ThemePicker";
 import "./Landing.css";
 import "./App.css";
@@ -103,6 +104,7 @@ function AppContent() {
               <NavLink to="/head-to-head">Head-to-Head</NavLink>
               <NavLink to="/dashboard">Dashboard</NavLink>
               <NavLink to="/simulate">Simulate</NavLink>
+              <NavLink to="/drivers">Drivers</NavLink>
               <NavLink to="/tracks">Circuits</NavLink>
               <NavLink to="/compare">Compare</NavLink>
               <ThemePicker />
@@ -114,6 +116,7 @@ function AppContent() {
               <Route path="/simulate" element={<SimulationSetupPage />} />
               <Route path="/results/:id" element={<SimulationResultsPage />} />
               <Route path="/monte-carlo/:id" element={<MonteCarloResultsPage />} />
+              <Route path="/drivers" element={<DriversPage />} />
               <Route path="/tracks" element={<TracksPage />} />
               <Route path="/tracks/:id" element={<TrackDetailPage />} />
               <Route path="/import" element={<DataImportPage />} />

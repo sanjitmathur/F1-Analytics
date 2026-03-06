@@ -684,64 +684,120 @@
 
 
 /* ═══════════════════════════════════════
-   START LIGHTS / WARP / LAUNCHING
+   F1 LAUNCH — SIMPLE LOADING TRANSITION
    ═══════════════════════════════════════ */
 
-.start-lights-container {
-  position: fixed; inset: 0; z-index: 100;
-  display: flex; align-items: center; justify-content: center;
-  flex-direction: column; gap: 40px;
-  background: rgba(0,0,0,0.85); backdrop-filter: blur(30px);
-  animation: lightsAppear 0.3s ease-out;
+.f1-launch-simple {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a0a;
 }
-@keyframes lightsAppear { from { opacity: 0; } to { opacity: 1; } }
-.start-lights { display: flex; gap: 24px; }
-.light-column { display: flex; flex-direction: column; gap: 8px; }
-.start-light {
-  width: 48px; height: 48px; border-radius: 50%;
-  background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1);
-  transition: all 0.15s ease;
-}
-.start-light.lit {
-  background: #e10600; border-color: #e10600;
-  box-shadow: 0 0 20px rgba(225,6,0,0.8), 0 0 60px rgba(225,6,0,0.4), inset 0 0 20px rgba(255,100,100,0.5);
-}
-.start-light.out {
-  background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.06);
-  box-shadow: none; transition: all 0.1s ease;
-}
-.lights-out-text {
-  font-family: 'Orbitron', sans-serif; font-size: 32px; font-weight: 900;
-  color: #00e676; letter-spacing: 8px;
-  text-shadow: 0 0 30px rgba(0,230,118,0.6); animation: lightsOutPulse 0.5s ease-out;
-}
-@keyframes lightsOutPulse { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
 
-.speed-warp-overlay {
-  position: fixed; inset: 0; z-index: 200; overflow: hidden;
-  animation: warpBgFade 0.8s ease-in forwards;
+.f1-simple-loading {
+  animation: f1SimpleFadeIn 0.4s ease-out;
 }
-@keyframes warpBgFade { 0% { background: transparent; } 50% { background: rgba(0,0,0,0.5); } 100% { background: #020203; } }
 
-.speed-line {
-  position: absolute; width: 2px;
-  background: linear-gradient(90deg, transparent, rgba(225,6,0,0.6), rgba(255,255,255,0.8), transparent);
-  animation: speedStreak 0.6s ease-in forwards;
+.f1-simple-exit {
+  animation: f1SimpleFadeOut 0.5s ease-in forwards;
 }
-@keyframes speedStreak { 0% { width: 2px; opacity: 0; transform: translateX(0); } 30% { opacity: 1; } 100% { width: 100vw; opacity: 0; transform: translateX(-50vw); } }
 
-.warp-flash {
-  position: absolute; inset: 0; background: white; opacity: 0;
-  animation: warpFlash 0.8s ease-in 0.4s forwards;
+@keyframes f1SimpleFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-@keyframes warpFlash { 0% { opacity: 0; } 50% { opacity: 0.1; } 100% { opacity: 1; } }
 
+@keyframes f1SimpleFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.f1-launch-simple-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.f1-launch-simple-bar {
+  width: 40px;
+  height: 4px;
+  background: #e10600;
+  border-radius: 2px;
+  box-shadow: 0 0 20px rgba(225,6,0,0.5);
+  animation: f1BarPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes f1BarPulse {
+  0%, 100% { opacity: 1; width: 40px; }
+  50% { opacity: 0.6; width: 60px; }
+}
+
+.f1-launch-simple-logo {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  color: rgba(255,255,255,0.9);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.f1-launch-simple-accent {
+  display: block;
+  width: 3px;
+  height: 20px;
+  background: #e10600;
+  border-radius: 2px;
+}
+
+.f1-launch-simple-text {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.25);
+  animation: f1TextBlink 1.5s ease-in-out infinite;
+}
+
+@keyframes f1TextBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.f1-launch-simple-loader {
+  width: 180px;
+  height: 2px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.f1-launch-simple-loader-fill {
+  height: 100%;
+  background: #e10600;
+  border-radius: 2px;
+  animation: f1SimpleLoad 1.2s ease-in-out forwards;
+  box-shadow: 0 0 8px rgba(225,6,0,0.4);
+}
+
+@keyframes f1SimpleLoad {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+/* ─── Launching state — fade out landing content ─── */
 .launching .landing-hero,
 .launching .landing-topbar,
 .launching .landing-scroll-hint {
   transition: all 0.5s cubic-bezier(0.4,0,0.2,1);
   opacity: 0; transform: scale(0.95); filter: blur(10px);
 }
+
 
 .landing-page:focus-visible { outline: none; }
 

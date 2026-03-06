@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef, type MouseEvent as ReactMouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import CircuitMap from "../components/CircuitMap";
+// CircuitMap still used in hero section, how-it-works, and CTA
 
 /* ─── Particle system for floating data points ─── */
 function ParticleField() {
@@ -91,93 +92,6 @@ function ParticleField() {
   return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0 }} />;
 }
 
-/* ─── Cursor particle trail ─── */
-function CursorTrail() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouse = useRef({ x: -100, y: -100 });
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
-    const dpr = window.devicePixelRatio || 1;
-    let animId: number;
-
-    const resize = () => {
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      canvas.style.width = `${window.innerWidth}px`;
-      canvas.style.height = `${window.innerHeight}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    interface Trail { x: number; y: number; vx: number; vy: number; life: number; maxLife: number; size: number; color: string; }
-    const trails: Trail[] = [];
-    const colors = ["#e10600", "#ff4444", "#448aff", "#ffffff"];
-    let lastSpawn = 0;
-
-    const onMove = (e: globalThis.MouseEvent) => {
-      mouse.current = { x: e.clientX, y: e.clientY };
-    };
-    window.addEventListener("mousemove", onMove, { passive: true });
-
-    const draw = (now: number) => {
-      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-
-      if (now - lastSpawn > 16 && mouse.current.x > 0) {
-        lastSpawn = now;
-        for (let i = 0; i < 2; i++) {
-          trails.push({
-            x: mouse.current.x + (Math.random() - 0.5) * 8,
-            y: mouse.current.y + (Math.random() - 0.5) * 8,
-            vx: (Math.random() - 0.5) * 1.5,
-            vy: (Math.random() - 0.5) * 1.5 - 0.5,
-            life: 1,
-            maxLife: 40 + Math.random() * 30,
-            size: 1.5 + Math.random() * 2.5,
-            color: colors[Math.floor(Math.random() * colors.length)],
-          });
-        }
-      }
-
-      for (let i = trails.length - 1; i >= 0; i--) {
-        const t = trails[i];
-        t.x += t.vx;
-        t.y += t.vy;
-        t.life++;
-        const progress = t.life / t.maxLife;
-        if (progress >= 1) { trails.splice(i, 1); continue; }
-        const alpha = 1 - progress;
-        const s = t.size * (1 - progress * 0.5);
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, s, 0, Math.PI * 2);
-        ctx.fillStyle = t.color;
-        ctx.globalAlpha = alpha * 0.6;
-        ctx.fill();
-        // glow
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, s * 3, 0, Math.PI * 2);
-        ctx.fillStyle = t.color;
-        ctx.globalAlpha = alpha * 0.1;
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-
-      animId = requestAnimationFrame(draw);
-    };
-    animId = requestAnimationFrame(draw);
-
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener("resize", resize);
-      window.removeEventListener("mousemove", onMove);
-    };
-  }, []);
-
-  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 1, pointerEvents: "none" }} />;
-}
 
 /* ─── 3D Tilt Card wrapper ─── */
 function TiltCard({ children, className, style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
@@ -242,41 +156,23 @@ function RacingLine() {
   );
 }
 
-/* ─── F1 Start Lights ─── */
-function StartLights({ phase }: { phase: number }) {
+/* ─── Simple launch transition overlay ─── */
+function LaunchOverlay({ phase }: { phase: "idle" | "loading" | "exit" }) {
+  if (phase === "idle") return null;
+
   return (
-    <div className="start-lights-container">
-      <div className="start-lights">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="light-column">
-            <div className={`start-light ${phase > i ? "lit" : ""} ${phase === 6 ? "out" : ""}`} />
-            <div className={`start-light ${phase > i ? "lit" : ""} ${phase === 6 ? "out" : ""}`} />
-          </div>
-        ))}
+    <div className={`f1-launch-simple f1-simple-${phase}`}>
+      <div className="f1-launch-simple-content">
+        <div className="f1-launch-simple-bar" />
+        <div className="f1-launch-simple-logo">
+          <span className="f1-launch-simple-accent" />
+          F1 STRATEGY
+        </div>
+        <div className="f1-launch-simple-text">INITIALIZING SIMULATOR</div>
+        <div className="f1-launch-simple-loader">
+          <div className="f1-launch-simple-loader-fill" />
+        </div>
       </div>
-      {phase === 6 && <div className="lights-out-text">LIGHTS OUT</div>}
-    </div>
-  );
-}
-
-/* ─── Speed Warp Overlay ─── */
-const SPEED_LINES = Array.from({ length: 40 }).map((_, i) => ({
-  id: i,
-  top: `${(i * 2.5 + (i * 37 % 17)) % 100}%`,
-  left: `${30 + (i * 13 % 40)}%`,
-  delay: `${(i * 7 % 30) / 100}s`,
-  opacity: 0.2 + (i * 11 % 60) / 100,
-  height: i % 4 === 0 ? 2 : 1,
-}));
-
-function SpeedWarp({ active }: { active: boolean }) {
-  if (!active) return null;
-  return (
-    <div className="speed-warp-overlay">
-      {SPEED_LINES.map((line) => (
-        <div key={line.id} className="speed-line" style={{ top: line.top, left: line.left, animationDelay: line.delay, opacity: line.opacity, height: line.height }} />
-      ))}
-      <div className="warp-flash" />
     </div>
   );
 }
@@ -563,84 +459,14 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
 
-/* ─── F1 Sound Effects (Web Audio API) ─── */
-function useF1Sounds() {
-  const ctxRef = useRef<AudioContext | null>(null);
-
-  const getCtx = () => {
-    if (!ctxRef.current) ctxRef.current = new AudioContext();
-    return ctxRef.current;
-  };
-
-  const playBeep = useCallback((freq = 800, duration = 0.15) => {
-    try {
-      const ctx = getCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + duration);
-    } catch { /* audio not available */ }
-  }, []);
-
-  const playLightsOut = useCallback(() => {
-    try {
-      const ctx = getCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(400, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.3);
-      gain.gain.setValueAtTime(0.12, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.5);
-    } catch { /* audio not available */ }
-  }, []);
-
-  const playEngineRev = useCallback(() => {
-    try {
-      const ctx = getCtx();
-      const osc = ctx.createOscillator();
-      const osc2 = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc2.type = "square";
-      osc.frequency.setValueAtTime(80, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.8);
-      osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 1.2);
-      osc2.frequency.setValueAtTime(60, ctx.currentTime);
-      osc2.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.8);
-      gain.gain.setValueAtTime(0.06, ctx.currentTime);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime + 0.4);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
-      osc.connect(gain).connect(ctx.destination);
-      osc2.connect(gain);
-      osc.start();
-      osc2.start();
-      osc.stop(ctx.currentTime + 1.5);
-      osc2.stop(ctx.currentTime + 1.5);
-    } catch { /* audio not available */ }
-  }, []);
-
-  return { playBeep, playLightsOut, playEngineRev };
-}
-
 /* ═══════════════════════════════════════════
    MAIN LANDING PAGE
    ═══════════════════════════════════════════ */
 export default function LandingPage() {
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
-  const [lightPhase, setLightPhase] = useState(0);
   const [launching, setLaunching] = useState(false);
-  const [warpActive, setWarpActive] = useState(false);
-  const { playBeep, playLightsOut, playEngineRev } = useF1Sounds();
+  const [launchPhase, setLaunchPhase] = useState<"idle" | "loading" | "exit">("idle");
 
   useEffect(() => {
     requestAnimationFrame(() => setMounted(true));
@@ -649,20 +475,14 @@ export default function LandingPage() {
   const handleLaunch = useCallback(() => {
     if (launching) return;
     setLaunching(true);
-    const delays = [0, 400, 400, 400, 400, 400, 600];
-    let time = 0;
-    for (let i = 1; i <= 6; i++) {
-      time += delays[i - 1];
-      const phase = i;
-      setTimeout(() => {
-        setLightPhase(phase);
-        if (phase < 6) playBeep(800 + phase * 50, 0.18);
-        else { playLightsOut(); playEngineRev(); }
-      }, time);
-    }
-    setTimeout(() => setWarpActive(true), time + 200);
-    setTimeout(() => navigate("/season/2026"), time + 900);
-  }, [launching, navigate, playBeep, playLightsOut, playEngineRev]);
+    setLaunchPhase("loading");
+
+    // Fade out after brief loading
+    setTimeout(() => setLaunchPhase("exit"), 1200);
+
+    // Navigate after fade
+    setTimeout(() => navigate("/season/2026"), 1700);
+  }, [launching, navigate]);
 
   /* Section reveals */
   const { callbackRef: featuresRef, visible: featuresVis } = useReveal(0.1);
@@ -677,7 +497,6 @@ export default function LandingPage() {
   return (
     <div className={`landing-page ${mounted ? "mounted" : ""} ${launching ? "launching" : ""}`}>
       <ParticleField />
-      <CursorTrail />
       <RacingLine />
 
       <div className="landing-orb landing-orb-1" style={{ transform: `translate(0, ${parallaxY * 0.5}px)` }} />
@@ -685,8 +504,7 @@ export default function LandingPage() {
       <div className="landing-orb landing-orb-3" style={{ transform: `translate(0, ${parallaxY * 0.7}px)` }} />
       <div className="landing-grid" ref={parallaxRef} />
 
-      {lightPhase > 0 && <StartLights phase={lightPhase} />}
-      <SpeedWarp active={warpActive} />
+      <LaunchOverlay phase={launchPhase} />
 
       {/* ═══ SCROLLABLE CONTENT ═══ */}
       <div className="landing-scroll-wrapper">
