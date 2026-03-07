@@ -132,7 +132,7 @@ export default function RacePredictionPage() {
               { label: "Laps", value: race.total_laps },
               { label: "Base Lap Time", value: `${race.base_lap_time}s` },
               { label: "Pit Loss", value: `${race.pit_loss_time}s` },
-              { label: "DRS Zones", value: race.drs_zones },
+              { label: "Active Aero Zones", value: race.drs_zones },
               { label: "Overtake Difficulty", value: `${race.overtake_difficulty}x` },
               { label: "Safety Car Chance", value: `${(race.safety_car_probability * 100).toFixed(0)}%` },
             ].map(item => (

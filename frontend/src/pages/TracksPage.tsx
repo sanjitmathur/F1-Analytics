@@ -45,7 +45,7 @@ export default function TracksPage() {
             <div className="form-group"><label>Total Laps</label><input type="number" value={form.total_laps} onChange={e => setForm({ ...form, total_laps: Number(e.target.value) })} /></div>
             <div className="form-group"><label>Base Lap Time (s)</label><input type="number" step={0.1} value={form.base_lap_time} onChange={e => setForm({ ...form, base_lap_time: Number(e.target.value) })} /></div>
             <div className="form-group"><label>Pit Loss (s)</label><input type="number" step={0.1} value={form.pit_loss_time} onChange={e => setForm({ ...form, pit_loss_time: Number(e.target.value) })} /></div>
-            <div className="form-group"><label>DRS Zones</label><input type="number" min={0} max={4} value={form.drs_zones} onChange={e => setForm({ ...form, drs_zones: Number(e.target.value) })} /></div>
+            <div className="form-group"><label>Active Aero Zones</label><input type="number" min={0} max={4} value={form.drs_zones} onChange={e => setForm({ ...form, drs_zones: Number(e.target.value) })} /></div>
             <div className="form-group"><label>Overtake Difficulty</label><input type="number" step={0.1} value={form.overtake_difficulty} onChange={e => setForm({ ...form, overtake_difficulty: Number(e.target.value) })} /></div>
             <div className="form-group"><label>SC Probability</label><input type="number" step={0.01} value={form.safety_car_probability} onChange={e => setForm({ ...form, safety_car_probability: Number(e.target.value) })} /></div>
           </div>
@@ -77,7 +77,7 @@ export default function TracksPage() {
                 { v: t.total_laps, l: "Laps" },
                 { v: `${t.base_lap_time}s`, l: "Lap" },
                 { v: `${t.pit_loss_time}s`, l: "Pit" },
-                { v: t.drs_zones, l: "DRS" },
+                { v: t.drs_zones, l: "Aero" },
                 { v: `${t.overtake_difficulty}x`, l: "OT" },
                 { v: `${(t.safety_car_probability * 100).toFixed(0)}%`, l: "SC" },
               ].map(item => (

@@ -109,7 +109,7 @@ Key formulas:
 
 ### Landing Page (`/`)
 Cinematic full-screen experience that serves as the app entry point:
-- **Hero section** (100vh): Animated particle field, racing line SVGs, gradient orbs, tachometer with live RPM, telemetry HUD (speed/gear/throttle/DRS/delta), race position ticker
+- **Hero section** (100vh): Animated particle field, racing line SVGs, gradient orbs, tachometer with live RPM, telemetry HUD (speed/gear/throttle/X-MODE/delta), race position ticker
 - **Scroll sections**: Features grid (6 cards), How It Works (3 vertical Baraka-style cards with visuals), Tech Stack (4 cards + stats strip), Final CTA
 - **Launch sequence**: F1 start lights (5 columns, lit sequentially) → "LIGHTS OUT" → speed warp → navigates to `/season/2026`
 - All sections use IntersectionObserver for scroll-reveal animations

@@ -7,7 +7,7 @@ Full-stack F1 race prediction platform with two modes: **2026 Season Predictor**
 - **Cinematic Landing Page** — Animated particle field, live RPM tachometer, telemetry HUD, F1 start-lights launch sequence with speed warp transition, scrollable feature showcase
 - **2026 Season Predictor** — 22 drivers, 11 teams (including Cadillac), 24 race weekends with real calendar dates
 - **Qualifying Simulation** — Q1/Q2/Q3 knockout format with elimination brackets
-- **Race Simulation** — Lap-by-lap engine: tire degradation, DRS overtakes, pit stops, safety cars, DNFs
+- **Race Simulation** — Lap-by-lap engine: tire degradation, active aero overtakes, pit stops, safety cars, DNFs
 - **Weather Effects** — Dry/wet/mixed conditions affecting lap times, tire choice, and SC probability
 - **Monte Carlo Predictions** — Run hundreds of simulations to get win/podium/top-10 probability distributions
 - **Championship Tracker** — Driver and constructor standings updated with predicted points

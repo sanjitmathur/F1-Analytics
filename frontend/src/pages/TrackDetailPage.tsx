@@ -31,7 +31,7 @@ function getCharacteristics(track: Track) {
     badges.push({ label: "Balanced", color: "#64C4FF" });
   if (track.overtake_difficulty >= 1.2 && track.drs_zones <= 1) badges.push({ label: "Technical", color: "#FFD700" });
   if (track.safety_car_probability >= 0.05) badges.push({ label: "Safety Car Hotspot", color: "#FF4444" });
-  if (track.drs_zones >= 3) badges.push({ label: "Multi-DRS", color: "#3671C6" });
+  if (track.drs_zones >= 3) badges.push({ label: "Multi-Zone", color: "#3671C6" });
   if (track.total_laps >= 70) badges.push({ label: "Endurance", color: "#229971" });
   return badges;
 }
@@ -102,7 +102,7 @@ export default function TrackDetailPage() {
               { v: track.total_laps, l: "Race Laps" },
               { v: `${track.base_lap_time}s`, l: "Base Lap Time" },
               { v: `${track.pit_loss_time}s`, l: "Pit Loss" },
-              { v: track.drs_zones, l: "DRS Zones" },
+              { v: track.drs_zones, l: "Active Aero Zones" },
               { v: `${track.overtake_difficulty}x`, l: "Overtake Difficulty" },
               { v: `${(track.safety_car_probability * 100).toFixed(0)}%`, l: "SC Chance / Lap" },
               ...(history?.circuit_length_km ? [{ v: `${history.circuit_length_km} km`, l: "Circuit Length" }] : []),

@@ -69,8 +69,8 @@ const DRIVERS: Driver[] = [
   { firstName: "Valtteri", lastName: "Bottas", number: 77, team: "CADILLAC", teamColor: "#FFD700", img: `${F1_IMG}/cadillac/valbot01/2026cadillacvalbot01right.webp`, wins: 10, podiums: 67, poles: 20, points: 1797, championships: 0, country: "Finland", dob: "28/08/1989", grandsPrix: 246, quote: "To whom it may concern, I'm back. The best is yet to come." },
 ];
 
-/* 2025 Calendar from formula1.com — next upcoming race */
-const NEXT_RACE = { name: "Australian Grand Prix", circuit: "Albert Park", date: "16 MAR" };
+/* 2026 Calendar — next upcoming race */
+const NEXT_RACE = { name: "Australian Grand Prix", circuit: "Albert Park", date: "8 MAR" };
 
 function getAge(dob: string) {
   const [d, m, y] = dob.split("/").map(Number);

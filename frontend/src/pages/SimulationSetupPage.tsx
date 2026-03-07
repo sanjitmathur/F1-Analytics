@@ -238,7 +238,7 @@ export default function SimulationSetupPage() {
               { label: "Laps", value: selectedTrack.total_laps },
               { label: "Base Lap", value: `${selectedTrack.base_lap_time}s` },
               { label: "Pit Loss", value: `${selectedTrack.pit_loss_time}s` },
-              { label: "DRS Zones", value: selectedTrack.drs_zones },
+              { label: "Active Aero Zones", value: selectedTrack.drs_zones },
               { label: "Overtake", value: `${selectedTrack.overtake_difficulty}x` },
               { label: "SC Chance", value: `${(selectedTrack.safety_car_probability * 100).toFixed(0)}%` },
             ].map(item => (
