@@ -111,7 +111,7 @@ async def get_prediction_results(
     result = await db.execute(
         select(PredictionResult)
         .where(PredictionResult.prediction_id == prediction_id)
-        .order_by(PredictionResult.predicted_position)
+        .order_by(PredictionResult.win_pct.desc(), PredictionResult.podium_pct.desc(), PredictionResult.predicted_position)
     )
     results = result.scalars().all()
     if not results:
@@ -193,7 +193,7 @@ async def get_race_weekend_predictions(
         results_q = await db.execute(
             select(PredictionResult)
             .where(PredictionResult.prediction_id == pred.id)
-            .order_by(PredictionResult.predicted_position)
+            .order_by(PredictionResult.win_pct.desc(), PredictionResult.podium_pct.desc(), PredictionResult.predicted_position)
         )
         results = results_q.scalars().all()
         output.append(PredictionFullOut(

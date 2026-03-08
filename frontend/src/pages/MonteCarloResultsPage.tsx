@@ -77,7 +77,8 @@ export default function MonteCarloResultsPage() {
     );
   }
 
-  const topDriver = mcResult.drivers[0];
+  const sortedDrivers = [...mcResult.drivers].sort((a, b) => b.win_pct - a.win_pct);
+  const topDriver = sortedDrivers[0];
   const topColor = topDriver ? (teamColors[topDriver.team] || "var(--f1-red)") : "var(--f1-red)";
 
   return (

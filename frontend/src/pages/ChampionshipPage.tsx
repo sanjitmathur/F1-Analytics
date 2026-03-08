@@ -7,20 +7,27 @@ import {
 import type { ChampionshipStanding, TeamColors } from "../types";
 
 export default function ChampionshipPage() {
-  const [driverStandings, setDriverStandings] = useState<ChampionshipStanding[]>([]);
-  const [constructorStandings, setConstructorStandings] = useState<ChampionshipStanding[]>([]);
+  const [predictedDrivers, setPredictedDrivers] = useState<ChampionshipStanding[]>([]);
+  const [predictedConstructors, setPredictedConstructors] = useState<ChampionshipStanding[]>([]);
+  const [realDrivers, setRealDrivers] = useState<ChampionshipStanding[]>([]);
+  const [realConstructors, setRealConstructors] = useState<ChampionshipStanding[]>([]);
   const [teamColors, setTeamColors] = useState<TeamColors>({});
   const [view, setView] = useState<"driver" | "constructor">("driver");
+  const [mode, setMode] = useState<"predicted" | "real">("predicted");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      getDriverStandings(2026).catch(() => []),
-      getConstructorStandings(2026).catch(() => []),
+      getDriverStandings(2026, true).catch(() => []),
+      getConstructorStandings(2026, true).catch(() => []),
+      getDriverStandings(2026, false).catch(() => []),
+      getConstructorStandings(2026, false).catch(() => []),
       getSeasonTeamColors(2026).catch(() => ({})),
-    ]).then(([ds, cs, tc]) => {
-      setDriverStandings(ds);
-      setConstructorStandings(cs);
+    ]).then(([pd, pc, rd, rc, tc]) => {
+      setPredictedDrivers(pd);
+      setPredictedConstructors(pc);
+      setRealDrivers(rd);
+      setRealConstructors(rc);
       setTeamColors(tc);
       setLoading(false);
     });
@@ -28,15 +35,55 @@ export default function ChampionshipPage() {
 
   if (loading) return <div style={{ display: "flex", justifyContent: "center", padding: 80 }}><span className="spinner" /></div>;
 
-  const standings = view === "driver" ? driverStandings : constructorStandings;
+  const standings = mode === "predicted"
+    ? (view === "driver" ? predictedDrivers : predictedConstructors)
+    : (view === "driver" ? realDrivers : realConstructors);
   const leader = standings[0];
+
+  const accentColor = "var(--f1-red)";
 
   return (
     <div>
-      <div className="page-header animate-in">
+      <div className="page-header animate-in" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
         <div>
           <div className="section-label">Championship</div>
-          <h1>2026 Standings</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <h1 style={{ margin: 0 }}>2026 Standings</h1>
+            <div style={{ display: "flex", gap: 4, background: "var(--bg-secondary)", borderRadius: 6, padding: 3 }}>
+              <button
+                onClick={() => setMode("predicted")}
+                style={{
+                  padding: "5px 14px",
+                  borderRadius: 4,
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: mode === "predicted" ? "var(--f1-red)" : "transparent",
+                  color: mode === "predicted" ? "#fff" : "var(--text-muted)",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                Predicted
+              </button>
+              <button
+                onClick={() => setMode("real")}
+                style={{
+                  padding: "5px 14px",
+                  borderRadius: 4,
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: mode === "real" ? "var(--f1-red)" : "transparent",
+                  color: mode === "real" ? "#fff" : "var(--text-muted)",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                Real
+              </button>
+            </div>
+          </div>
         </div>
         <div style={{ display: "flex", gap: 4 }}>
           <button className={`btn ${view === "driver" ? "btn-primary" : "btn-ghost"} btn-sm`} onClick={() => setView("driver")}>Drivers</button>
@@ -53,13 +100,23 @@ export default function ChampionshipPage() {
         }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 3, marginBottom: 8 }}>
-              {view === "driver" ? "Championship Leader" : "Leading Constructor"}
+              {mode === "real" ? "Real" : "Predicted"} {view === "driver" ? "Championship Leader" : "Leading Constructor"}
             </div>
-            <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 26, fontWeight: 900 }}>{leader.entity_name}</div>
+            <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 26, fontWeight: 900, display: "flex", alignItems: "center", gap: 12 }}>
+              {view === "constructor" && (
+                <span style={{ width: 5, height: 28, borderRadius: 3, backgroundColor: teamColors[leader.entity_name] || "#444" }} />
+              )}
+              {leader.entity_name}
+            </div>
+            {leader.through_round > 0 && (
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                Through Round {leader.through_round}
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: 32 }}>
             {[
-              { label: "Points", value: leader.points.toFixed(0), color: "var(--f1-red)" },
+              { label: "Points", value: leader.points.toFixed(0), color: accentColor },
               { label: "Wins", value: leader.wins.toString(), color: "var(--accent-yellow)" },
               { label: "Podiums", value: leader.podiums.toString(), color: "var(--accent-blue)" },
             ].map(s => (
@@ -74,10 +131,16 @@ export default function ChampionshipPage() {
 
       {/* Full standings */}
       <div className="card animate-in">
-        <div className="card-header">{view === "driver" ? "Driver" : "Constructor"} Standings</div>
+        <div className="card-header">
+          {mode === "real" ? "Real" : "Predicted"} {view === "driver" ? "Driver" : "Constructor"} Standings
+        </div>
         {standings.length === 0 ? (
           <div className="empty-state" style={{ padding: 40 }}>
-            <p style={{ color: "var(--text-muted)" }}>No predictions yet. Run race predictions to populate standings.</p>
+            <p style={{ color: "var(--text-muted)" }}>
+              {mode === "predicted"
+                ? "No predictions yet. Run race predictions to populate standings."
+                : "No real results yet. Results update automatically after each race."}
+            </p>
           </div>
         ) : (
           <table className="results-table">

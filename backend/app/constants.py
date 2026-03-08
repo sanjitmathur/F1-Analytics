@@ -287,6 +287,37 @@ POINTS_SYSTEM: dict[int, int] = {
     1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1,
 }
 
+# ─── Real 2026 Race Results ─────────────────────────────────────────────────
+# Actual race results for completed 2026 rounds.
+# Each entry: list of {driver, team, position, status} dicts ordered by finish.
+
+REAL_RESULTS_2026: dict[int, list[dict]] = {
+    1: [  # Australian Grand Prix — Albert Park, 2026-03-08
+        {"driver": "George Russell", "team": "Mercedes", "position": 1, "status": "finished"},
+        {"driver": "Kimi Antonelli", "team": "Mercedes", "position": 2, "status": "finished"},
+        {"driver": "Charles Leclerc", "team": "Ferrari", "position": 3, "status": "finished"},
+        {"driver": "Lewis Hamilton", "team": "Ferrari", "position": 4, "status": "finished"},
+        {"driver": "Lando Norris", "team": "McLaren", "position": 5, "status": "finished"},
+        {"driver": "Max Verstappen", "team": "Red Bull", "position": 6, "status": "finished"},
+        {"driver": "Oliver Bearman", "team": "Haas", "position": 7, "status": "finished"},
+        {"driver": "Arvid Lindblad", "team": "Racing Bulls", "position": 8, "status": "finished"},
+        {"driver": "Gabriel Bortoleto", "team": "Audi", "position": 9, "status": "finished"},
+        {"driver": "Pierre Gasly", "team": "Alpine", "position": 10, "status": "finished"},
+        {"driver": "Esteban Ocon", "team": "Haas", "position": 11, "status": "finished"},
+        {"driver": "Alexander Albon", "team": "Williams", "position": 12, "status": "finished"},
+        {"driver": "Liam Lawson", "team": "Racing Bulls", "position": 13, "status": "finished"},
+        {"driver": "Franco Colapinto", "team": "Alpine", "position": 14, "status": "finished"},
+        {"driver": "Carlos Sainz", "team": "Williams", "position": 15, "status": "finished"},
+        {"driver": "Sergio Perez", "team": "Cadillac", "position": 16, "status": "finished"},
+        {"driver": "Lance Stroll", "team": "Aston Martin", "position": 17, "status": "finished"},
+        {"driver": "Fernando Alonso", "team": "Aston Martin", "position": 18, "status": "finished"},
+        {"driver": "Valtteri Bottas", "team": "Cadillac", "position": 19, "status": "dnf"},
+        {"driver": "Isack Hadjar", "team": "Red Bull", "position": 20, "status": "dnf"},
+        {"driver": "Oscar Piastri", "team": "McLaren", "position": 21, "status": "dns"},
+        {"driver": "Nico Hulkenberg", "team": "Audi", "position": 22, "status": "dns"},
+    ],
+}
+
 # Historical F1 season stats (2020-2025) — official F1 standings data
 # Key: (year, driver_name) -> {wins, podiums, points, avg_pos}
 HISTORICAL_STATS: dict[tuple[int, str], dict] = {
@@ -390,11 +421,11 @@ HISTORICAL_STATS: dict[tuple[int, str], dict] = {
     # ── 2025 (24 races) ──
     (2025, "Lando Norris"):              {"wins": 7,  "podiums": 18, "points": 423.0, "avg_pos": 3.6},
     (2025, "Max Verstappen"):            {"wins": 8,  "podiums": 15, "points": 421.0, "avg_pos": 3.0},
-    (2025, "Oscar Piastri"):             {"wins": 7,  "podiums": 16, "points": 410.0, "avg_pos": 2.8},
+    (2025, "Oscar Piastri"):             {"wins": 8,  "podiums": 16, "points": 410.0, "avg_pos": 3.2},
     (2025, "George Russell"):            {"wins": 2,  "podiums": 9,  "points": 319.0, "avg_pos": 4.5},
-    (2025, "Charles Leclerc"):           {"wins": 0,  "podiums": 7,  "points": 242.0, "avg_pos": 5.1},
+    (2025, "Charles Leclerc"):           {"wins": 0,  "podiums": 7,  "points": 242.0, "avg_pos": 4.7},
     (2025, "Lewis Hamilton"):            {"wins": 0,  "podiums": 0,  "points": 156.0, "avg_pos": 7.0},
-    (2025, "Andrea Kimi Antonelli"):     {"wins": 0,  "podiums": 3,  "points": 150.0, "avg_pos": 8.2},
+    (2025, "Kimi Antonelli"):             {"wins": 0,  "podiums": 3,  "points": 150.0, "avg_pos": 8.2},
     (2025, "Alexander Albon"):           {"wins": 0,  "podiums": 0,  "points": 73.0,  "avg_pos": 9.7},
     (2025, "Carlos Sainz"):              {"wins": 0,  "podiums": 2,  "points": 64.0,  "avg_pos": 10.8},
     (2025, "Fernando Alonso"):           {"wins": 0,  "podiums": 0,  "points": 56.0,  "avg_pos": 10.3},

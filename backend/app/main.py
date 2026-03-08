@@ -1,5 +1,6 @@
 import logging
 import platform
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -22,6 +23,7 @@ from .routers import (
     weather,
 )
 from .schemas import HealthResponse
+from .services.real_results_fetcher import auto_fetch_completed_races, rebuild_real_standings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -73,12 +75,37 @@ async def seed_2026_season():
     logger.info(f"Seeded 2026 season with {len(CALENDAR_2026)} race weekends")
 
 
+def _sync_real_results():
+    """Sync real results in a background thread (uses sync DB).
+
+    1. Rebuild standings from hardcoded REAL_RESULTS_2026
+    2. Try to auto-fetch any newly completed races via FastF1
+    3. If new races found, rebuild again with those included
+    """
+    try:
+        # First pass: rebuild from hardcoded results
+        rebuild_real_standings()
+
+        # Second pass: try auto-fetching new races via FastF1
+        new_results = auto_fetch_completed_races()
+        if new_results:
+            rebuild_real_standings(extra_results=new_results)
+            logger.info("Auto-fetched results for %d new rounds", len(new_results))
+    except Exception:
+        logger.exception("Error syncing real results")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing database...")
     await init_db()
     await seed_preset_tracks()
     await seed_2026_season()
+
+    # Sync real results in background thread (uses sync DB engine)
+    thread = threading.Thread(target=_sync_real_results, daemon=True)
+    thread.start()
+
     logger.info("Startup complete")
     yield
     logger.info("Shutting down")

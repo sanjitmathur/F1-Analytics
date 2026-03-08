@@ -155,13 +155,36 @@ export async function getSeasonTeamColors(year: number): Promise<TeamColors> {
   return data;
 }
 
-export async function getDriverStandings(year: number): Promise<ChampionshipStanding[]> {
-  const { data } = await client.get<ChampionshipStanding[]>(`/season/${year}/standings/driver`);
+export async function getDriverStandings(year: number, predicted?: boolean): Promise<ChampionshipStanding[]> {
+  const params: Record<string, string> = {};
+  if (predicted !== undefined) params.predicted = String(predicted);
+  const { data } = await client.get<ChampionshipStanding[]>(`/season/${year}/standings/driver`, { params });
   return data;
 }
 
-export async function getConstructorStandings(year: number): Promise<ChampionshipStanding[]> {
-  const { data } = await client.get<ChampionshipStanding[]>(`/season/${year}/standings/constructor`);
+export async function getConstructorStandings(year: number, predicted?: boolean): Promise<ChampionshipStanding[]> {
+  const params: Record<string, string> = {};
+  if (predicted !== undefined) params.predicted = String(predicted);
+  const { data } = await client.get<ChampionshipStanding[]>(`/season/${year}/standings/constructor`, { params });
+  return data;
+}
+
+export interface RealRaceResult {
+  driver: string;
+  team: string;
+  position: number;
+  status: string;
+}
+
+export async function getRealRaceResults(year: number, round: number): Promise<RealRaceResult[]> {
+  const { data } = await client.get<RealRaceResult[]>(`/season/${year}/real-results/${round}`);
+  return data;
+}
+
+export type DriverSkillProfile = { pace: number; racecraft: number; consistency: number; wet: number; experience: number; qualifying: number };
+
+export async function getDriverSkills(year: number): Promise<Record<string, DriverSkillProfile>> {
+  const { data } = await client.get<Record<string, DriverSkillProfile>>(`/season/${year}/driver-skills`);
   return data;
 }
 

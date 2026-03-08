@@ -29,7 +29,7 @@ async def get_monte_carlo_results(run_id: int, db: AsyncSession = Depends(get_db
     result = await db.execute(
         select(MonteCarloData)
         .where(MonteCarloData.run_id == run_id)
-        .order_by(MonteCarloData.avg_position)
+        .order_by(MonteCarloData.win_pct.desc(), MonteCarloData.podium_pct.desc(), MonteCarloData.avg_position)
     )
     mc_data = result.scalars().all()
 

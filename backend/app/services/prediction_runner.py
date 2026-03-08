@@ -12,6 +12,7 @@ from datetime import datetime
 from sqlalchemy import select
 
 from ..constants import DRIVERS_2026, POINTS_SYSTEM
+from ..services.performance_calibrator import get_calibrated_drivers_2026
 from ..database import get_sync_db
 from ..models import (
     ChampionshipStanding,
@@ -60,10 +61,15 @@ def run_prediction_background(prediction_id: int) -> None:
 
         track = build_track(rw)
 
+        # Use calibrated driver data (derived from real race results)
+        calibrated_drivers = get_calibrated_drivers_2026()
+        logger.info("Using calibrated skills: %s",
+                     {d["name"]: d["skill"] for d in calibrated_drivers[:5]})
+
         if prediction.prediction_type == "qualifying":
-            _run_qualifying_prediction(db, prediction, rw, track, weather, overrides, num_sims)
+            _run_qualifying_prediction(db, prediction, rw, track, weather, overrides, num_sims, calibrated_drivers)
         else:
-            _run_race_prediction(db, prediction, rw, track, weather, overrides, num_sims)
+            _run_race_prediction(db, prediction, rw, track, weather, overrides, num_sims, calibrated_drivers)
 
     except Exception as e:
         logger.exception(f"Prediction {prediction_id} failed: {e}")
@@ -80,15 +86,17 @@ def run_prediction_background(prediction_id: int) -> None:
 def _run_qualifying_prediction(
     db, prediction: RacePrediction, rw: RaceWeekend,
     track: SimTrack, weather: str, overrides: dict, num_sims: int,
+    driver_data: list[dict] | None = None,
 ) -> None:
     """Run N qualifying simulations, aggregate grid positions."""
+    driver_constants = driver_data or DRIVERS_2026
     position_counts: dict[str, Counter] = defaultdict(Counter)
     q1_exits: Counter = Counter()
     q2_exits: Counter = Counter()
 
     for i in range(num_sims):
         drivers = build_drivers(
-            DRIVERS_2026, rw.track_name, weather, rw.total_laps,
+            driver_constants, rw.track_name, weather, rw.total_laps,
             overrides=overrides.get("drivers"),
         )
         session = QualifyingSession(track, drivers, weather=weather)
@@ -107,7 +115,7 @@ def _run_qualifying_prediction(
             db.commit()
 
     # Build results
-    for driver in DRIVERS_2026:
+    for driver in driver_constants:
         name = driver["name"]
         counts = position_counts.get(name, Counter())
         total = sum(counts.values()) or 1
@@ -144,8 +152,10 @@ def _run_qualifying_prediction(
 def _run_race_prediction(
     db, prediction: RacePrediction, rw: RaceWeekend,
     track: SimTrack, weather: str, overrides: dict, num_sims: int,
+    driver_data: list[dict] | None = None,
 ) -> None:
     """Run N race simulations, aggregate positions and stats."""
+    driver_constants = driver_data or DRIVERS_2026
     position_counts: dict[str, Counter] = defaultdict(Counter)
     win_counts: Counter = Counter()
     podium_counts: Counter = Counter()
@@ -156,7 +166,7 @@ def _run_race_prediction(
 
     # First run a quick qualifying to get grid order
     quali_drivers = build_drivers(
-        DRIVERS_2026, rw.track_name, weather, rw.total_laps,
+        driver_constants, rw.track_name, weather, rw.total_laps,
         overrides=overrides.get("drivers"),
     )
     quali = QualifyingSession(track, quali_drivers, weather=weather)
@@ -165,7 +175,7 @@ def _run_race_prediction(
 
     for i in range(num_sims):
         drivers = build_drivers(
-            DRIVERS_2026, rw.track_name, weather, rw.total_laps,
+            driver_constants, rw.track_name, weather, rw.total_laps,
             overrides=overrides.get("drivers"),
             grid_positions=grid_order,
         )
@@ -197,7 +207,7 @@ def _run_race_prediction(
             db.commit()
 
     # Build results
-    for driver in DRIVERS_2026:
+    for driver in driver_constants:
         name = driver["name"]
         counts = position_counts.get(name, Counter())
         total = sum(counts.values()) or 1
@@ -252,10 +262,11 @@ def rebuild_championship_standings(db, season_id: int) -> None:
     if not season:
         return
 
-    # Wipe existing standings for this season
+    # Wipe existing PREDICTED standings for this season (preserve real standings)
     db.execute(
         sa_delete(ChampionshipStanding).where(
-            ChampionshipStanding.season_id == season_id
+            ChampionshipStanding.season_id == season_id,
+            ChampionshipStanding.is_predicted == True,  # noqa: E712
         )
     )
 
@@ -293,11 +304,6 @@ def rebuild_championship_standings(db, season_id: int) -> None:
         ).scalars().all()
 
         for r in results:
-            # Convert percentages back to approximate counts, then to avg points
-            # Use predicted_position and win/podium percentages
-            win_count_approx = r.win_pct / 100
-            podium_count_approx = r.podium_pct / 100
-
             # Calculate average points from position distribution
             avg_pts = 0.0
             if r.position_distribution:
@@ -306,8 +312,9 @@ def rebuild_championship_standings(db, season_id: int) -> None:
                     avg_pts += POINTS_SYSTEM.get(pos, 0) * (pct / 100)
 
             driver_points[r.driver_name] += avg_pts
-            driver_wins[r.driver_name] += round(win_count_approx)
-            driver_podiums[r.driver_name] += round(podium_count_approx)
+            # Accumulate fractional wins/podiums (round only at display time)
+            driver_wins[r.driver_name] += r.win_pct / 100
+            driver_podiums[r.driver_name] += r.podium_pct / 100
 
     if max_round == 0:
         db.commit()
@@ -325,8 +332,8 @@ def rebuild_championship_standings(db, season_id: int) -> None:
                 standing_type="driver",
                 entity_name=name,
                 points=round(driver_points.get(name, 0), 1),
-                wins=driver_wins.get(name, 0),
-                podiums=driver_podiums.get(name, 0),
+                wins=round(driver_wins.get(name, 0)),
+                podiums=round(driver_podiums.get(name, 0)),
                 through_round=max_round,
                 is_predicted=True,
             ))
@@ -347,8 +354,8 @@ def rebuild_championship_standings(db, season_id: int) -> None:
             standing_type="constructor",
             entity_name=team,
             points=round(pts, 1),
-            wins=team_wins[team],
-            podiums=team_podiums[team],
+            wins=round(team_wins[team]),
+            podiums=round(team_podiums[team]),
             through_round=max_round,
             is_predicted=True,
         ))

@@ -80,9 +80,10 @@ export default function SimulationResultsPage() {
     );
   }
 
-  const winner = results.length > 0 ? results[0] : undefined;
-  const p2 = results.length > 1 ? results[1] : undefined;
-  const p3 = results.length > 2 ? results[2] : undefined;
+  const sortedResults = [...results].sort((a, b) => a.position - b.position);
+  const winner = sortedResults.length > 0 ? sortedResults[0] : undefined;
+  const p2 = sortedResults.length > 1 ? sortedResults[1] : undefined;
+  const p3 = sortedResults.length > 2 ? sortedResults[2] : undefined;
   const totalLaps = winner?.laps_completed || 0;
   const winnerColor = winner ? (teamColors[winner.team] || "var(--f1-red)") : "var(--f1-red)";
 

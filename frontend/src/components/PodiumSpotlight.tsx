@@ -8,7 +8,9 @@ interface Props {
 const PODIUM_COLORS = ["#FFD700", "#C0C0C0", "#CD7F32"];
 
 export default function PodiumSpotlight({ results, teamColors }: Props) {
-  const top3 = results.slice(0, 3);
+  // Sort by win% descending so the driver most likely to win is P1
+  const sorted = [...results].sort((a, b) => b.win_pct - a.win_pct);
+  const top3 = sorted.slice(0, 3);
   // Reorder for visual: [P2, P1, P3]
   const display = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3;
   const heights = [140, 180, 110];

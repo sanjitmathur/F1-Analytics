@@ -71,7 +71,7 @@ async def get_weather_impact(
             pr_q = await db.execute(
                 select(PredictionResult)
                 .where(PredictionResult.prediction_id == pred.id)
-                .order_by(PredictionResult.predicted_position)
+                .order_by(PredictionResult.win_pct.desc(), PredictionResult.podium_pct.desc(), PredictionResult.predicted_position)
             )
             results[condition] = [
                 {"driver_name": r.driver_name, "team": r.team, "position": r.predicted_position}
